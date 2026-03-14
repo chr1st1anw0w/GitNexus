@@ -25,6 +25,7 @@ program
   .command('analyze [path]')
   .description('Index a repository (full analysis)')
   .option('-f, --force', 'Force full re-index even if up to date')
+  .option('--incremental', 'Only re-index files changed since last commit (faster for small changes)')
   .option('--embeddings', 'Enable embedding generation for semantic search (off by default)')
   .option('--skills', 'Generate repo-specific skill files from detected communities')
    .option('-v, --verbose', 'Enable verbose ingestion warnings (default: false)')
@@ -111,6 +112,17 @@ program
   .description('Execute raw Cypher query against the knowledge graph')
   .option('-r, --repo <name>', 'Target repository')
   .action(createLazyAction(() => import('./tool.js'), 'cypherCommand'));
+
+// ─── Export Command ─────────────────────────────────────────────────
+
+program
+  .command('export [path]')
+  .description('Export the indexed knowledge graph to a portable format')
+  .option('-f, --format <format>', 'Output format: json, graphml, cypher, bundle (default: json)', 'json')
+  .option('-o, --output <file>', 'Output file path (default: <repo>-<commit>.<ext>)')
+  .option('-r, --repo <name>', 'Target repository name (from registry)')
+  .option('--include-embeddings', 'Include embeddings in bundle (default: false, increases file size)')
+  .action(createLazyAction(() => import('./export.js'), 'exportCommand'));
 
 // ─── Eval Server (persistent daemon for SWE-bench) ─────────────────
 
