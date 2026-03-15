@@ -14,7 +14,8 @@ import { DEFAULT_VISIBLE_EDGES, type EdgeType } from '../lib/constants';
 import type { RepoSummary, ConnectToServerResult } from '../services/server-connection';
 import { fetchRepos, connectToServer } from '../services/server-connection';
 
-export type ViewMode = 'onboarding' | 'loading' | 'exploring';
+export type ViewMode = 'onboarding' | 'loading' | 'exploring' | 'hub';
+export type HubTab = 'dashboard' | 'tasks' | 'impact';
 export type RightPanelTab = 'code' | 'chat';
 export type EmbeddingStatus = 'idle' | 'loading' | 'embedding' | 'indexing' | 'ready' | 'error';
 
@@ -56,6 +57,8 @@ interface AppState {
   // View state
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  hubTab: HubTab;
+  setHubTab: (tab: HubTab) => void;
 
   // Graph data
   graph: KnowledgeGraph | null;
@@ -176,6 +179,7 @@ const AppStateContext = createContext<AppState | null>(null);
 export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('onboarding');
+  const [hubTab, setHubTab] = useState<HubTab>('dashboard');
 
   // Graph data
   const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
@@ -1091,9 +1095,13 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+
+
   const value: AppState = {
     viewMode,
     setViewMode,
+    hubTab,
+    setHubTab,
     graph,
     setGraph,
     fileContents,
