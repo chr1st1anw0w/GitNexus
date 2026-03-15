@@ -1,3 +1,54 @@
+import React, { useState } from 'react';
+import { 
+  Search, 
+  Filter, 
+  Activity, 
+  ChevronDown, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Terminal,
+  Zap,
+  Shield,
+  Layout,
+  Cpu
+} from 'lucide-react';
+
+const NAV_ITEMS = [
+  { icon: Zap, label: 'Impact Graph' },
+  { icon: Activity, label: 'Execution Flows' },
+  { icon: Shield, label: 'Risk Analysis' },
+  { icon: Cpu, label: 'Dependency Map' },
+  { icon: Layout, label: 'Module Clusters' },
+];
+
+const METRIC_CARDS = [
+  { label: 'Total Affected', value: '42', sub: 'Nodes in blast radius', color: '#7c3aed' },
+  { label: 'Risk Level', value: 'High', sub: 'Critical dependencies target', color: '#ef4444' },
+  { label: 'Processes', value: '12', sub: 'Active execution chains', color: '#10b981', pulse: true },
+];
+
+const GRAPH_NODES = [
+  { id: '1', x: 50, y: 50, r: 12, color: '#ef4444', label: 'AuthService', ring: true },
+  { id: '2', x: 25, y: 30, r: 8, color: '#7c3aed', label: 'UserRoute' },
+  { id: '3', x: 75, y: 30, r: 8, color: '#7c3aed', label: 'AdminPanel' },
+  { id: '4', x: 20, y: 70, r: 7, color: '#3b82f6', label: 'Session' },
+  { id: '5', x: 80, y: 70, r: 7, color: '#10b981', label: 'Logger' },
+  { id: '6', x: 50, y: 85, r: 6, color: '#f59e0b', label: 'Database' },
+];
+
+const GRAPH_EDGES: [string, string][] = [
+  ['1', '2'], ['1', '3'], ['1', '4'], ['1', '5'], ['1', '6'],
+  ['2', '4'], ['3', '5']
+];
+
+const MCP_LOGS = [
+  { ts: '10:24:01', type: 'call', tool: 'gitnexus_impact', args: '{ "target": "AuthService", "direction": "upstream" }' },
+  { ts: '10:24:02', type: 'result', text: 'Impact analysis complete. 42 nodes identified.' },
+  { ts: '10:24:05', type: 'call', tool: 'gitnexus_query', args: '{ "query": "auth validation flows" }' },
+  { ts: '10:24:06', type: 'warn', text: 'Deep dependency cycle detected in Session module.' },
+  { ts: '10:24:10', type: 'result', text: 'Execution flows mapped for UserLogin and TokenRefresh.' },
+];
+
 const DepthBarChart = () => {
   const data = [
     { depth: 'd=1', count: 4, color: '#ef4444' },

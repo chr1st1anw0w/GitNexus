@@ -49,14 +49,26 @@ const brightenColor = (hex: string, factor: number): string => {
   );
 };
 
+export interface CanvasDisplayConfig {
+  showNodeLabels?: boolean;
+  showEdgeLabels?: boolean;
+  showNodeIcons?: boolean;
+  highlightNeighbors?: boolean;
+  showMinimap?: boolean;
+  nodeSize?: 'small' | 'medium' | 'large';
+  edgeThickness?: 'thin' | 'medium' | 'thick';
+}
+
 interface UseSigmaOptions {
   onNodeClick?: (nodeId: string) => void;
   onNodeHover?: (nodeId: string | null) => void;
+  onNodeRightClick?: (nodeId: string, x: number, y: number) => void;
   onStageClick?: () => void;
   highlightedNodeIds?: Set<string>;
   blastRadiusNodeIds?: Set<string>;
   animatedNodes?: Map<string, NodeAnimation>;
   visibleEdgeTypes?: EdgeType[];
+  canvasDisplay?: CanvasDisplayConfig;
 }
 
 interface UseSigmaReturn {
@@ -133,18 +145,51 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
   const blastRadiusRef = useRef<Set<string>>(new Set());
   const animatedNodesRef = useRef<Map<string, NodeAnimation>>(new Map());
   const visibleEdgeTypesRef = useRef<EdgeType[] | null>(null);
+  const canvasDisplayRef = useRef<CanvasDisplayConfig>({});
   const layoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [isLayoutRunning, setIsLayoutRunning] = useState(false);
   const [selectedNode, setSelectedNodeState] = useState<string | null>(null);
+
+  // Helper: Get node size multiplier based on setting
+  const getNodeSizeMultiplier = (size: 'small' | 'medium' | 'large' = 'medium'): number => {
+    return size === 'small' ? 0.7 : size === 'large' ? 1.3 : 1.0;
+  };
+
+  // Helper: Get edge thickness multiplier based on setting
+  const getEdgeThicknessMultiplier = (thickness: 'thin' | 'medium' | 'thick' = 'medium'): number => {
+    return thickness === 'thin' ? 0.6 : thickness === 'thick' ? 1.5 : 1.0;
+  };
 
   useEffect(() => {
     highlightedRef.current = options.highlightedNodeIds || new Set();
     blastRadiusRef.current = options.blastRadiusNodeIds || new Set();
     animatedNodesRef.current = options.animatedNodes || new Map();
     visibleEdgeTypesRef.current = options.visibleEdgeTypes || null;
+    canvasDisplayRef.current = options.canvasDisplay || {};
+
+    // Apply canvas display settings to Sigma instance
+    const sigma = sigmaRef.current;
+    if (sigma && options.canvasDisplay) {
+      const config = options.canvasDisplay;
+
+      // Update label visibility
+      if (config.showNodeLabels !== undefined) {
+        sigma.setSetting('renderLabels', config.showNodeLabels);
+      }
+      if (config.showEdgeLabels !== undefined) {
+        sigma.setSetting('renderEdgeLabels', config.showEdgeLabels);
+      }
+    }
+
     sigmaRef.current?.refresh();
-  }, [options.highlightedNodeIds, options.blastRadiusNodeIds, options.animatedNodes, options.visibleEdgeTypes]);
+  }, [
+    options.highlightedNodeIds,
+    options.blastRadiusNodeIds,
+    options.animatedNodes,
+    options.visibleEdgeTypes,
+    options.canvasDisplay,
+  ]);
 
   // Animation loop for node effects
   useEffect(() => {
@@ -270,20 +315,24 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
       
       nodeReducer: (node, data) => {
         const res = { ...data };
-        
+
         if (data.hidden) {
           res.hidden = true;
           return res;
         }
-        
+
         const currentSelected = selectedNodeRef.current;
         const highlighted = highlightedRef.current;
         const blastRadius = blastRadiusRef.current;
         const animatedNodes = animatedNodesRef.current;
+        const canvasDisplay = canvasDisplayRef.current;
         const hasHighlights = highlighted.size > 0;
         const hasBlastRadius = blastRadius.size > 0;
         const isQueryHighlighted = highlighted.has(node);
         const isBlastRadiusNode = blastRadius.has(node);
+
+        // Apply global node size multiplier
+        const sizeMultiplier = getNodeSizeMultiplier(canvasDisplay.nodeSize);
         
         // Apply animation effects FIRST (before other highlighting)
         const animation = animatedNodes.get(node);
@@ -291,33 +340,33 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
           const now = Date.now();
           const elapsed = now - animation.startTime;
           const progress = Math.min(elapsed / animation.duration, 1);
-          
+
           // Calculate animation phase (0-1-0-1... oscillation)
           const phase = (Math.sin(progress * Math.PI * 4) + 1) / 2;
-          
+
           if (animation.type === 'pulse') {
             // Cyan pulse for search results
-            const sizeMultiplier = 1.5 + phase * 0.8;
-            res.size = (data.size || 8) * sizeMultiplier;
+            const animSizeMultiplier = 1.5 + phase * 0.8;
+            res.size = (data.size || 8) * sizeMultiplier * animSizeMultiplier;
             res.color = phase > 0.5 ? '#06b6d4' : brightenColor('#06b6d4', 1.3);
             res.zIndex = 5;
             res.highlighted = true;
           } else if (animation.type === 'ripple') {
             // Red ripple for blast radius
-            const sizeMultiplier = 1.3 + phase * 1.2;
-            res.size = (data.size || 8) * sizeMultiplier;
+            const animSizeMultiplier = 1.3 + phase * 1.2;
+            res.size = (data.size || 8) * sizeMultiplier * animSizeMultiplier;
             res.color = phase > 0.5 ? '#ef4444' : '#f87171';
             res.zIndex = 5;
             res.highlighted = true;
           } else if (animation.type === 'glow') {
             // Purple glow for highlight
-            const sizeMultiplier = 1.4 + phase * 0.6;
-            res.size = (data.size || 8) * sizeMultiplier;
+            const animSizeMultiplier = 1.4 + phase * 0.6;
+            res.size = (data.size || 8) * sizeMultiplier * animSizeMultiplier;
             res.color = phase > 0.5 ? '#a855f7' : '#c084fc';
             res.zIndex = 5;
             res.highlighted = true;
           }
-          
+
           return res;
         }
         
@@ -325,58 +374,62 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
         if (hasBlastRadius && !currentSelected) {
           if (isBlastRadiusNode) {
             res.color = '#ef4444'; // Red for blast radius
-            res.size = (data.size || 8) * 1.8;
+            res.size = (data.size || 8) * sizeMultiplier * 1.8;
             res.zIndex = 3;
             res.highlighted = true;
           } else if (isQueryHighlighted) {
             // Regular cyan highlight for non-blast-radius nodes
             res.color = '#06b6d4';
-            res.size = (data.size || 8) * 1.4;
+            res.size = (data.size || 8) * sizeMultiplier * 1.4;
             res.zIndex = 2;
             res.highlighted = true;
           } else {
             res.color = dimColor(data.color, 0.15);
-            res.size = (data.size || 8) * 0.4;
+            res.size = (data.size || 8) * sizeMultiplier * 0.4;
             res.zIndex = 0;
           }
           return res;
         }
-        
+
         if (hasHighlights && !currentSelected) {
           if (isQueryHighlighted) {
             res.color = '#06b6d4';
-            res.size = (data.size || 8) * 1.6;
+            res.size = (data.size || 8) * sizeMultiplier * 1.6;
             res.zIndex = 2;
             res.highlighted = true;
           } else {
             res.color = dimColor(data.color, 0.2);
-            res.size = (data.size || 8) * 0.5;
+            res.size = (data.size || 8) * sizeMultiplier * 0.5;
             res.zIndex = 0;
           }
           return res;
         }
-        
+
         if (currentSelected) {
           const graph = graphRef.current;
           if (graph) {
             const isSelected = node === currentSelected;
-            const isNeighbor = graph.hasEdge(node, currentSelected) || graph.hasEdge(currentSelected, node);
-            
+            const shouldHighlightNeighbors = canvasDisplay.highlightNeighbors !== false;
+            const isNeighbor = shouldHighlightNeighbors && (graph.hasEdge(node, currentSelected) || graph.hasEdge(currentSelected, node));
+
             if (isSelected) {
               res.color = data.color;
-              res.size = (data.size || 8) * 1.8;
+              res.size = (data.size || 8) * sizeMultiplier * 1.8;
               res.zIndex = 2;
               res.highlighted = true;
             } else if (isNeighbor) {
               res.color = data.color;
-              res.size = (data.size || 8) * 1.3;
+              res.size = (data.size || 8) * sizeMultiplier * 1.3;
               res.zIndex = 1;
             } else {
               res.color = dimColor(data.color, 0.25);
-              res.size = (data.size || 8) * 0.6;
+              res.size = (data.size || 8) * sizeMultiplier * 0.6;
               res.zIndex = 0;
             }
           }
+        } else {
+          // Default state - apply base size multiplier
+          res.size = (data.size || 8) * sizeMultiplier;
         }
         
         return res;
@@ -384,7 +437,7 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
       
       edgeReducer: (edge, data) => {
         const res = { ...data };
-        
+
         // Check edge type visibility first
         const visibleTypes = visibleEdgeTypesRef.current;
         if (visibleTypes && data.relationType) {
@@ -393,64 +446,73 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
             return res;
           }
         }
-        
+
         const currentSelected = selectedNodeRef.current;
         const highlighted = highlightedRef.current;
         const blastRadius = blastRadiusRef.current;
-        const hasHighlights = highlighted.size > 0 || blastRadius.size > 0; // Check BOTH sets
-        
+        const canvasDisplay = canvasDisplayRef.current;
+        const hasHighlights = highlighted.size > 0 || blastRadius.size > 0;
+
+        // Apply global edge thickness multiplier
+        const thicknessMultiplier = getEdgeThicknessMultiplier(canvasDisplay.edgeThickness);
+
         if (hasHighlights && !currentSelected) {
           const graph = graphRef.current;
           if (graph) {
             const [source, target] = graph.extremities(edge);
-            
-            // Check if nodes are in EITHER set
+
             const isSourceActive = highlighted.has(source) || blastRadius.has(source);
             const isTargetActive = highlighted.has(target) || blastRadius.has(target);
-            
             const bothHighlighted = isSourceActive && isTargetActive;
             const oneHighlighted = isSourceActive || isTargetActive;
-            
+
             if (bothHighlighted) {
-              // If both nodes are in blast radius, use red edge
               if (blastRadius.has(source) && blastRadius.has(target)) {
                 res.color = '#ef4444';
               } else {
                 res.color = '#06b6d4';
               }
-              res.size = Math.max(2, (data.size || 1) * 3);
+              res.size = Math.max(2, (data.size || 1) * thicknessMultiplier * 3);
               res.zIndex = 2;
             } else if (oneHighlighted) {
               res.color = dimColor('#06b6d4', 0.4);
-              res.size = 1;
+              res.size = 1 * thicknessMultiplier;
               res.zIndex = 1;
             } else {
-              res.color = dimColor(data.color, 0.08);
-              res.size = 0.2;
+              // Non-highlighted: low-contrast but VISIBLE
+              res.color = dimColor(data.color, 0.15);
+              res.size = 0.3 * thicknessMultiplier;
               res.zIndex = 0;
             }
           }
           return res;
         }
-        
+
         if (currentSelected) {
           const graph = graphRef.current;
           if (graph) {
             const [source, target] = graph.extremities(edge);
             const isConnected = source === currentSelected || target === currentSelected;
-            
+
             if (isConnected) {
+              // Active edge: bright color + thick line
               res.color = brightenColor(data.color, 1.5);
-              res.size = Math.max(3, (data.size || 1) * 4);
+              res.size = Math.max(3, (data.size || 1) * thicknessMultiplier * 4);
               res.zIndex = 2;
             } else {
-              res.color = dimColor(data.color, 0.1);
-              res.size = 0.3;
+              // Inactive edge: low contrast but still visible (not invisible)
+              res.color = dimColor(data.color, 0.2);
+              res.size = Math.max(0.3, (data.size || 1) * thicknessMultiplier * 0.4);
               res.zIndex = 0;
             }
           }
+        } else {
+          // Default state (no selection): show all edges at low-contrast
+          // Edges remain visible to convey overall structure
+          res.color = dimColor(data.color, 0.35);
+          res.size = (data.size || 1) * thicknessMultiplier;
         }
-        
+
         return res;
       },
     });
@@ -465,6 +527,11 @@ export const useSigma = (options: UseSigmaOptions = {}): UseSigmaReturn => {
     sigma.on('clickStage', () => {
       setSelectedNode(null);
       options.onStageClick?.();
+    });
+
+    sigma.on('rightClickNode', ({ node, event }) => {
+      event.original.preventDefault();
+      options.onNodeRightClick?.(node, event.x, event.y);
     });
 
     sigma.on('enterNode', ({ node }) => {

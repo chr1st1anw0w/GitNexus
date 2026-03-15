@@ -33,12 +33,16 @@ pnpm preview:showcase
 
 | 功能 | 說明 |
 |------|------|
+| **分析對象選擇** | 首次進入時可選擇 Demo / GitNexus Data / Live Data 三種模式 |
+| **Demo 模式直接進入** | Demo 模式預設跳過選擇頁面，直接進入分析展示 |
+| **重新選擇分析對象** | 左上角按鈕可隨時返回選擇頁面重新選擇 |
 | **Node hover preview** | 滑過節點可看到 summary / tag / risk 預覽 |
 | **Click → inspector** | 點擊節點可開啟右側 inspector sidebar |
 | **Right-click context menu** | 右鍵可直接開啟動作選單 |
 | **Sidebar pin / unpin** | 可固定檢視內容，不因 deselect 而消失 |
 | **Preview mode toggle** | 可開關 hover preview |
 | **Field visibility toggle** | 可切換 tags / risk / relations / metadata |
+| **Canvas display settings** | 可動態調整節點標籤、邊線標籤、鄰近節點高亮、節點大小、邊線粗細 |
 | **Mock impact analysis** | 使用 curated sample graph 顯示 caller / callee / process / risk |
 | **Demo / Live mode distinction** | 可切換為未接資料的 live empty state |
 
@@ -91,16 +95,22 @@ pnpm preview:showcase
 
 | 功能 | 狀態 | 說明 |
 |------|------|------|
+| 分析對象選擇 | ✅ 可用 | 三種模式選擇：Demo / GitNexus Data / Live Data |
+| Demo 模式快速進入 | ✅ 可用 | 預設跳過選擇頁面，直接進入分析展示 |
+| 重新選擇分析對象 | ✅ 可用 | 左上角按鈕可隨時返回選擇頁面 |
 | Node hover | ✅ 可用 | 顯示輕量 preview card |
 | Node click | ✅ 可用 | 開啟 inspector sidebar |
 | Right-click menu | ✅ 可用 | 執行 context actions |
 | Sidebar pinning | ✅ 可用 | 固定 inspector 內容 |
+| Canvas display settings | ✅ 可用 | 動態調整節點標籤、邊線、大小等視覺設定 |
 | Impact highlight | ✅ 可用 | 顯示 mock blast radius |
 | Live-mode empty state | ✅ 可用 | 說明未登入 / 未匯入資料情境 |
 
 ### 3. 展示模式特點
-- 🎯 導覽面板：快速切換不同元件
-- 📊 程式碼檢視器：即時顯示元件資訊
+- 🎯 分析對象選擇：支援 Demo / GitNexus Data / Live Data 三種模式
+- ⚡ Demo 模式快速進入：預設跳過選擇頁面，直接進入分析展示
+- 🔄 靈活的模式切換：左上角按鈕可隨時返回選擇頁面重新選擇
+- 📊 左側控制面板：實時調整 field visibility 和 canvas display settings
 - 🟢 Demo 指示燈：明確標示展示模式
 - 🎨 完整設計呈現：所有視覺細節保留
 
@@ -231,11 +241,20 @@ export const SHOWCASE_TASKS = [
 - [x] 加入 demo / live-data-empty-state 模式切換
 - [x] 補上 mock graph、context menu、inspector、field toggles
 - [x] 加入 reducer 測試
+- [x] 新增分析對象選擇頁面（三種模式：Demo / GitNexus Data / Live Data）
+- [x] Demo 模式預設跳過選擇頁面，直接進入分析展示
+- [x] 新增「重新選擇分析對象」按鈕，支援隨時返回選擇頁面
+- [x] 新增 Canvas Display Settings 面板，支援動態調整視覺設定
+- [x] 整合浮動聊天欄、語言/主題切換、畫布顯示設定到主應用
+- [x] 整合 Task Detail Modal 到 hub 和 exploring 視圖
+- [x] 實現邊線粗細動態調整功能
 
 ### 下一步
 - [ ] 串接真實 GitNexus graph payload
 - [ ] 補 component interaction tests（需 jsdom / Testing Library 類依賴）
 - [ ] 規劃 responsive layout 與對外 demo hosting
+- [ ] 安裝 dnd-kit 實現 Task Board 拖拽排序
+- [ ] 實現狀態自動同步到 TASK.md
 
 ---
 
@@ -248,4 +267,4 @@ export const SHOWCASE_TASKS = [
 ## 📞 備註
 
 **用途**: GitNexus Web 對外展示 / onboarding / 空資料體驗
-**最後更新**: 2026-03-15
+**最後更新**: 2026-03-15 (v2.0 - 新增分析對象選擇與 Canvas Display Settings)

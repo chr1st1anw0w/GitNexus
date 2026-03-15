@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useReducer, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
+  Circle,
   Database,
   Eye,
   EyeOff,
   Focus,
+  Map,
   Maximize2,
   MousePointerClick,
   PanelRight,
@@ -15,6 +18,7 @@ import {
   ShieldAlert,
   Sparkles,
   Tags,
+  Type,
   Workflow,
   ZoomIn,
   ZoomOut,
@@ -52,9 +56,6 @@ const createGitNexusGraph = (data: any): KnowledgeGraph => {
         name: n.name,
         filePath: n.filePath,
         description: n.description,
-        risk: n.risk || 'LOW',
-        confidence: n.confidence || 0.8,
-        communities: n.communities || [],
       },
     });
   });
@@ -65,10 +66,8 @@ const createGitNexusGraph = (data: any): KnowledgeGraph => {
       sourceId: e.source,
       targetId: e.target,
       type: e.type,
-      properties: {
-        confidence: e.confidence || 0.8,
-        reason: e.reason || '',
-      },
+      confidence: e.confidence || 0.8,
+      reason: e.reason || '',
     });
   });
 
@@ -141,6 +140,7 @@ export const InteractiveGraphDemo = () => {
     },
     highlightedNodeIds: state.highlightedNodeIds,
     blastRadiusNodeIds: state.blastRadiusNodeIds,
+    canvasDisplay: state.canvasDisplay,
   });
 
   useEffect(() => {
@@ -197,61 +197,120 @@ export const InteractiveGraphDemo = () => {
   const selectedOrDefaultInsight = selectedInsight ?? getShowcaseInsight(graph, defaultNodeId);
   const showSidebar = state.sidebarOpen || state.sidebarPinned || Boolean(state.selectedNodeId);
 
+  // 如果顯示選擇頁面，渲染選擇介面
+  if (state.showSelectionPage) {
+    return (
+      <div className="min-h-screen bg-background-deep text-text-primary">
+        <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-6">
+          <section className="rounded-3xl border border-border-subtle bg-deep/80 p-6 shadow-2xl shadow-black/20">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  GitNexus Web Interactive Demo
+                </div>
+                <h1 className="text-3xl font-black tracking-tight text-white">選擇分析對象</h1>
+                <p className="text-sm leading-6 text-text-secondary">
+                  選擇您想要分析的資料模式，開始探索 GitNexus 的互動式圖表功能。
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <button
+                onClick={() => {
+                  dispatch({ type: 'SET_MODE', mode: 'demo' });
+                  dispatch({ type: 'START_ANALYSIS' });
+                }}
+                className="group rounded-2xl border border-border-subtle bg-surface/60 p-6 text-left transition-all hover:border-cyan-400/40 hover:bg-cyan-500/5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-3 text-cyan-200">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Demo Mode</div>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold text-white">Mock Graph Demo</h3>
+                <p className="mt-2 text-sm leading-6 text-text-secondary">
+                  使用精心設計的模擬資料，體驗完整的互動功能與分析流程。
+                </p>
+                <div className="mt-4 text-xs text-text-muted">
+                  ✓ 所有互動功能啟用<br />
+                  ✓ 模擬影響分析<br />
+                  ✓ 即時預覽與檢查
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  dispatch({ type: 'SET_MODE', mode: 'gitnexus' });
+                  dispatch({ type: 'START_ANALYSIS' });
+                }}
+                className="group rounded-2xl border border-border-subtle bg-surface/60 p-6 text-left transition-all hover:border-purple-400/40 hover:bg-purple-500/5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 text-purple-200">
+                    <Database className="h-6 w-6" />
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-purple-200">GitNexus Data</div>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold text-white">Real Repository Graph</h3>
+                <p className="mt-2 text-sm leading-6 text-text-secondary">
+                  載入真實的 .gitnexus/ 資料，分析實際的程式碼結構與關聯性。
+                </p>
+                <div className="mt-4 text-xs text-text-muted">
+                  ✓ 真實資料庫圖表<br />
+                  ✓ 實際依賴關係<br />
+                  ✓ 完整分析能力
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  dispatch({ type: 'SET_MODE', mode: 'live' });
+                  dispatch({ type: 'START_ANALYSIS' });
+                }}
+                className="group rounded-2xl border border-border-subtle bg-surface/60 p-6 text-left transition-all hover:border-amber-400/40 hover:bg-amber-500/5"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-amber-200">
+                    <Database className="h-6 w-6" />
+                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-amber-200">Live Data Mode</div>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold text-white">Future Backend Integration</h3>
+                <p className="mt-2 text-sm leading-6 text-text-secondary">
+                  未來連接後端服務的模式，目前顯示空白狀態佔位符。
+                </p>
+                <div className="mt-4 text-xs text-text-muted">
+                  ⏳ 需要登入<br />
+                  ⏳ 需要後端連線<br />
+                  ⏳ 需要匯入資料
+                </div>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  // 分析展示頁面
   return (
     <div className="min-h-screen bg-background-deep text-text-primary">
+      {/* 左上角「重新選擇分析對象」按鈕 */}
+      <div className="fixed left-6 top-6 z-50">
+        <button
+          onClick={() => dispatch({ type: 'SHOW_SELECTION_PAGE' })}
+          className="inline-flex items-center gap-2 rounded-xl border border-border-subtle bg-deep/95 px-4 py-2 text-sm font-semibold text-text-secondary backdrop-blur-sm transition-colors hover:border-accent/30 hover:bg-accent/10 hover:text-accent"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          重新選擇分析對象
+        </button>
+      </div>
+
       <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-6 py-6">
-        <section className="rounded-3xl border border-border-subtle bg-deep/80 p-6 shadow-2xl shadow-black/20">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                <Sparkles className="h-3.5 w-3.5" />
-                GitNexus Web Interactive Demo
-              </div>
-              <h1 className="text-3xl font-black tracking-tight text-white">Graph interaction showcase for onboarding, demos, and empty-state exploration</h1>
-              <p className="text-sm leading-6 text-text-secondary">
-                This standalone page demonstrates the GitNexus Web interaction model even when no user is signed in,
-                no backend is connected, and no repository graph has been imported yet.
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <button
-                onClick={() => dispatch({ type: 'SET_MODE', mode: 'demo' })}
-                className={`rounded-2xl border px-4 py-3 text-left transition-all ${
-                  state.dataMode === 'demo'
-                    ? 'border-cyan-400/40 bg-cyan-500/10 text-cyan-100'
-                    : 'border-border-subtle bg-surface/60 text-text-secondary hover:border-cyan-400/20 hover:text-white'
-                }`}
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide">Demo Mode</div>
-                <div className="mt-1 text-sm">Mock graph · all interactions enabled</div>
-              </button>
-              <button
-                onClick={() => dispatch({ type: 'SET_MODE', mode: 'gitnexus' })}
-                className={`rounded-2xl border px-4 py-3 text-left transition-all ${
-                  state.dataMode === 'gitnexus'
-                    ? 'border-purple-400/40 bg-purple-500/10 text-purple-100'
-                    : 'border-border-subtle bg-surface/60 text-text-secondary hover:border-purple-400/20 hover:text-white'
-                }`}
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide">GitNexus Data</div>
-                <div className="mt-1 text-sm">Real .gitnexus/ data · live graph</div>
-              </button>
-              <button
-                onClick={() => dispatch({ type: 'SET_MODE', mode: 'live' })}
-                className={`rounded-2xl border px-4 py-3 text-left transition-all ${
-                  state.dataMode === 'live'
-                    ? 'border-amber-400/40 bg-amber-500/10 text-amber-100'
-                    : 'border-border-subtle bg-surface/60 text-text-secondary hover:border-amber-400/20 hover:text-white'
-                }`}
-              >
-                <div className="text-xs font-semibold uppercase tracking-wide">Live Data Mode</div>
-                <div className="mt-1 text-sm">Future backend · empty state</div>
-              </button>
-            </div>
-          </div>
-        </section>
-
+        {/* 直接進入分析展示，移除介紹section */}
         <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="space-y-4">
             <div className="rounded-3xl border border-border-subtle bg-deep/80 p-5">
@@ -304,6 +363,115 @@ export const InteractiveGraphDemo = () => {
                 <div className="mt-2">{state.dataMode === 'demo'
                   ? 'Demo Mode · Mock graph loaded. This page demonstrates interaction behavior, not repository-specific analysis.'
                   : 'Live Data Mode · Sign-in, backend connectivity, and imported repository data are required before real analysis can appear here.'}</div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-border-subtle bg-deep/80 p-5">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-text-muted">Canvas Display</h2>
+
+              <div className="mt-4 space-y-3">
+                {/* Toggle Settings */}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => dispatch({ type: 'TOGGLE_CANVAS_SETTING', setting: 'showNodeLabels' })}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                      state.canvasDisplay.showNodeLabels
+                        ? 'border-accent/30 bg-accent/10 text-accent'
+                        : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Type className="h-3.5 w-3.5" />
+                      Node Labels
+                    </div>
+                    {state.canvasDisplay.showNodeLabels ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  </button>
+
+                  <button
+                    onClick={() => dispatch({ type: 'TOGGLE_CANVAS_SETTING', setting: 'showEdgeLabels' })}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                      state.canvasDisplay.showEdgeLabels
+                        ? 'border-accent/30 bg-accent/10 text-accent'
+                        : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Type className="h-3.5 w-3.5" />
+                      Edge Labels
+                    </div>
+                    {state.canvasDisplay.showEdgeLabels ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  </button>
+
+                  <button
+                    onClick={() => dispatch({ type: 'TOGGLE_CANVAS_SETTING', setting: 'highlightNeighbors' })}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                      state.canvasDisplay.highlightNeighbors
+                        ? 'border-accent/30 bg-accent/10 text-accent'
+                        : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Highlight Neighbors
+                    </div>
+                    {state.canvasDisplay.highlightNeighbors ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  </button>
+
+                  <button
+                    onClick={() => dispatch({ type: 'TOGGLE_CANVAS_SETTING', setting: 'showMinimap' })}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
+                      state.canvasDisplay.showMinimap
+                        ? 'border-accent/30 bg-accent/10 text-accent'
+                        : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Map className="h-3.5 w-3.5" />
+                      Minimap
+                    </div>
+                    {state.canvasDisplay.showMinimap ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+
+                {/* Node Size Selector */}
+                <div className="rounded-xl border border-border-subtle bg-surface/40 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Node Size</div>
+                  <div className="flex gap-2">
+                    {(['small', 'medium', 'large'] as const).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => dispatch({ type: 'SET_NODE_SIZE', size })}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors ${
+                          state.canvasDisplay.nodeSize === size
+                            ? 'border-accent/30 bg-accent/10 text-accent'
+                            : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                        }`}
+                      >
+                        <Circle className={`mx-auto ${size === 'small' ? 'h-2 w-2' : size === 'medium' ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Edge Thickness Selector */}
+                <div className="rounded-xl border border-border-subtle bg-surface/40 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Edge Thickness</div>
+                  <div className="flex gap-2">
+                    {(['thin', 'medium', 'thick'] as const).map((thickness) => (
+                      <button
+                        key={thickness}
+                        onClick={() => dispatch({ type: 'SET_EDGE_THICKNESS', thickness })}
+                        className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors ${
+                          state.canvasDisplay.edgeThickness === thickness
+                            ? 'border-accent/30 bg-accent/10 text-accent'
+                            : 'border-border-subtle bg-surface/50 text-text-muted hover:text-white'
+                        }`}
+                      >
+                        <div className={`mx-auto bg-current ${thickness === 'thin' ? 'h-0.5 w-8' : thickness === 'medium' ? 'h-1 w-8' : 'h-1.5 w-8'}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -382,28 +550,74 @@ export const InteractiveGraphDemo = () => {
                     )}
 
                     {hoveredInsight && hoveredInsight.node.id !== state.selectedNodeId && (
-                      <div className="absolute left-4 top-4 z-20 w-80 rounded-2xl border border-cyan-400/20 bg-deep/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-sm">
+                      <div className="absolute left-4 top-4 z-20 w-96 rounded-2xl border border-cyan-400/20 bg-deep/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-sm transition-all duration-200 ease-out animate-in fade-in slide-in-from-top-2">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
+                          <div className="flex-1 min-w-0">
                             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">Hover preview</div>
-                            <div className="mt-1 text-lg font-semibold text-white">{hoveredInsight.node.properties.name}</div>
-                            <div className="text-xs text-text-muted">{hoveredInsight.node.label}</div>
+                            <div className="mt-1 text-lg font-semibold text-white truncate">{hoveredInsight.node.properties.name}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-text-muted">{hoveredInsight.node.label}</span>
+                              {hoveredInsight.node.properties.filePath && (
+                                <span className="text-xs text-text-muted truncate">· {hoveredInsight.node.properties.filePath.split('/').pop()}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-cyan-200">Preview</div>
+                          <div className="flex-shrink-0 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold uppercase text-cyan-200">Preview</div>
                         </div>
+
                         <p className="mt-3 text-sm leading-6 text-text-secondary">{hoveredInsight.narrative.summary}</p>
-                        {state.visibleFields.tags && (
+
+                        {/* 相關節點統計 */}
+                        {state.visibleFields.relations && (
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div className="rounded-xl border border-border-subtle bg-surface/40 px-3 py-2 transition-all hover:bg-surface/60">
+                              <div className="text-[10px] uppercase tracking-wide text-text-muted">Callers</div>
+                              <div className="mt-1 text-sm font-semibold text-white">{hoveredInsight.callers.length}</div>
+                            </div>
+                            <div className="rounded-xl border border-border-subtle bg-surface/40 px-3 py-2 transition-all hover:bg-surface/60">
+                              <div className="text-[10px] uppercase tracking-wide text-text-muted">Callees</div>
+                              <div className="mt-1 text-sm font-semibold text-white">{hoveredInsight.callees.length}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 標籤預覽（最多5個）*/}
+                        {state.visibleFields.tags && hoveredInsight.narrative.tags.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            {hoveredInsight.narrative.tags.map((tag) => (
-                              <span key={tag} className="rounded-full border border-border-subtle bg-surface/50 px-2.5 py-1 text-xs text-text-secondary">{tag}</span>
+                            {hoveredInsight.narrative.tags.slice(0, 5).map((tag) => (
+                              <span key={tag} className="rounded-full border border-border-subtle bg-surface/50 px-2.5 py-1 text-xs text-text-secondary transition-colors hover:bg-surface/70">{tag}</span>
+                            ))}
+                            {hoveredInsight.narrative.tags.length > 5 && (
+                              <span className="rounded-full border border-border-subtle bg-surface/50 px-2.5 py-1 text-xs text-text-muted">+{hoveredInsight.narrative.tags.length - 5} more</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 風險等級 */}
+                        {state.visibleFields.risk && (
+                          <div className={`mt-3 rounded-2xl border px-3 py-2 text-xs transition-all ${riskTone(hoveredInsight.narrative.risk.level)}`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold">Risk {hoveredInsight.narrative.risk.level}</span>
+                              <span>{Math.round(hoveredInsight.narrative.risk.score * 100)}%</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Metadata 預覽（最多2個）*/}
+                        {state.visibleFields.metadata && hoveredInsight.narrative.metadata.length > 0 && (
+                          <div className="mt-3 space-y-1">
+                            {hoveredInsight.narrative.metadata.slice(0, 2).map((item) => (
+                              <div key={`${item.label}-${item.value}`} className="rounded-xl border border-border-subtle bg-surface/40 px-3 py-1.5 text-xs text-text-secondary">
+                                <span className="text-text-muted">{item.label}</span> · {item.value}
+                              </div>
                             ))}
                           </div>
                         )}
-                        {state.visibleFields.risk && (
-                          <div className={`mt-3 rounded-2xl border px-3 py-2 text-xs ${riskTone(hoveredInsight.narrative.risk.level)}`}>
-                            Risk {hoveredInsight.narrative.risk.level} · {Math.round(hoveredInsight.narrative.risk.score * 100)}%
-                          </div>
-                        )}
+
+                        {/* 互動提示 */}
+                        <div className="mt-3 pt-3 border-t border-border-subtle/50 text-xs text-text-muted">
+                          點擊節點查看完整資訊 · 右鍵開啟選單
+                        </div>
                       </div>
                     )}
 

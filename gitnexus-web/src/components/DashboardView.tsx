@@ -28,7 +28,7 @@ const AGENT_STATUS = [
 ];
 
 export const DashboardView: React.FC = () => {
-  const { projectName } = useAppState();
+  const { projectName, setHubTab } = useAppState();
   const [mcpStatus, setMcpStatus] = useState<'connected' | 'reconnecting'>('connected');
 
   // Simulate progress for visual feedback
@@ -100,6 +100,10 @@ export const DashboardView: React.FC = () => {
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action.id}
+                  onClick={() => {
+                    if (action.id === 'impact') setHubTab('impact');
+                    else if (action.id === 'analyze') setHubTab('tasks');
+                  }}
                   className="group relative p-5 rounded-3xl border border-border-subtle bg-elevated/40 backdrop-blur-sm hover:bg-hover/60 transition-all duration-300 text-left overflow-hidden"
                 >
                   {/* Hover Accent */}

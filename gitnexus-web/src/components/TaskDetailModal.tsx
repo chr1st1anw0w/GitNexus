@@ -168,22 +168,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                 </div>
                 <div className="flex items-center gap-3">
                    <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-node-function transition-all duration-700" style={{ width: \`\${progressPercent}%\` }} />
+                      <div className="h-full bg-node-function transition-all duration-700" style={{ width: `${progressPercent}%` }} />
                    </div>
                    <span className="text-[11px] font-mono text-node-function font-bold">{progressPercent}%</span>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {checklist.map((item) => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     onClick={() => toggleCheck(item.id)}
-                    className={\`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all \${item.checked ? 'bg-node-function/5 border-node-function/20' : 'bg-white/2 border-white/5 hover:bg-white/5'}\`}
+                    className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${item.checked ? 'bg-node-function/5 border-node-function/20' : 'bg-white/2 border-white/5 hover:bg-white/5'}`}
                   >
-                    <div className={\`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all \${item.checked ? 'bg-node-function border-node-function' : 'border-white/10'}\`}>
+                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-node-function border-node-function' : 'border-white/10'}`}>
                       {item.checked && <CheckCircle2 className="w-3.5 h-3.5 text-void font-bold" />}
                     </div>
-                    <span className={\`text-sm \${item.checked ? 'text-text-primary line-through opacity-50' : 'text-text-secondary font-medium'}\`}>{item.text}</span>
+                    <span className={`text-sm ${item.checked ? 'text-text-primary line-through opacity-50' : 'text-text-secondary font-medium'}`}>{item.text}</span>
                   </div>
                 ))}
               </div>
@@ -203,8 +203,8 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                      <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-bold">TSX</span>
                   </div>
                   <pre className="p-6 text-sm text-node-function font-mono leading-relaxed bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.05),transparent)]">
-                     <code>{\`// Task data for \${task.id}
-const taskData = \${JSON.stringify(task, null, 2)};\`}</code>
+                     <code>{`// Task data for ${task.id}
+const taskData = ${JSON.stringify(task, null, 2)};`}</code>
                   </pre>
                </div>
             </section>
@@ -235,9 +235,9 @@ const taskData = \${JSON.stringify(task, null, 2)};\`}</code>
                     </select>
                   </div>
                   <div className="flex items-center gap-3 pt-2">
-                     <div 
+                     <div
                         className="w-10 h-10 rounded-2xl p-0.5 shadow-lg"
-                        style={{ background: \`linear-gradient(135deg, \${task.roleColor}, #000)\` }}
+                        style={{ background: `linear-gradient(135deg, ${task.roleColor}, #000)` }}
                      >
                         <div className="w-full h-full rounded-[14px] bg-void flex items-center justify-center text-xs font-bold text-white">
                           {task.assignee.slice(0, 2).toUpperCase()}

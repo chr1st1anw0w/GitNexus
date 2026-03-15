@@ -1,6 +1,6 @@
 import Graph from 'graphology';
 import { KnowledgeGraph, NodeLabel } from '../core/graph/types';
-import { NODE_COLORS, NODE_SIZES, getCommunityColor } from './constants';
+import { NODE_COLORS, NODE_SIZES, getCommunityColor, EDGE_INFO } from './constants';
 
 export interface SigmaNodeAttributes {
   x: number;
@@ -27,6 +27,8 @@ export interface SigmaEdgeAttributes {
   type?: string;
   curvature?: number;
   zIndex?: number;
+  /** Original confidence score (0-1) from relationship resolution */
+  confidence?: number;
 }
 
 /**
@@ -275,39 +277,42 @@ export const knowledgeGraphToGraphology = (
 
   // Add edges with distinct colors per relationship type
   const edgeBaseSize = nodeCount > 20000 ? 0.4 : nodeCount > 5000 ? 0.6 : 1.0;
-  
-  // Edge styles - each relationship type has a DISTINCT color for clarity
-  // Using varied hues so relationships are easily distinguishable
-  const EDGE_STYLES: Record<string, { color: string; sizeMultiplier: number }> = {
-    // STRUCTURAL - Greens (folder/file hierarchy)
-    CONTAINS: { color: '#2d5a3d', sizeMultiplier: 0.4 },    // Forest green - folder contains
-    
-    // DEFINITIONS - Cyan/Teal (code definitions)
-    DEFINES: { color: '#0e7490', sizeMultiplier: 0.5 },     // Cyan - file defines function/class
-    
-    // DEPENDENCIES - Blue (imports between files)  
-    IMPORTS: { color: '#1d4ed8', sizeMultiplier: 0.6 },     // Blue - file imports file
-    
-    // FUNCTION FLOW - Purple (call graph)
-    CALLS: { color: '#7c3aed', sizeMultiplier: 0.8 },       // Violet - function calls
-    
-    // TYPE RELATIONSHIPS - Warm colors (OOP)
-    EXTENDS: { color: '#c2410c', sizeMultiplier: 1.0 },     // Orange - extension
-    IMPLEMENTS: { color: '#be185d', sizeMultiplier: 0.9 },  // Pink - interface implementation
+
+  // Size multiplier per relationship category (structural thinner, code flow thicker)
+  const EDGE_SIZE_MULTIPLIER: Record<string, number> = {
+    CONTAINS: 0.4,
+    DEFINES: 0.5,
+    IMPORTS: 0.6,
+    CALLS: 0.8,
+    EXTENDS: 1.0,
+    IMPLEMENTS: 0.9,
+    INHERITS: 1.0,
+    OVERRIDES: 0.8,
+    USES: 0.7,
+    HAS_METHOD: 0.5,
+    DECORATES: 0.4,
+    MEMBER_OF: 0.3,
+    STEP_IN_PROCESS: 0.6,
   };
-  
+
   knowledgeGraph.relationships.forEach((rel) => {
     if (graph.hasNode(rel.sourceId) && graph.hasNode(rel.targetId)) {
       if (!graph.hasEdge(rel.sourceId, rel.targetId)) {
-        const style = EDGE_STYLES[rel.type] || { color: '#4a4a5a', sizeMultiplier: 0.5 };
+        const edgeInfo = EDGE_INFO[rel.type as keyof typeof EDGE_INFO];
+        const color = edgeInfo?.color ?? '#4a4a5a';
+        const sizeMultiplier = EDGE_SIZE_MULTIPLIER[rel.type] ?? 0.5;
+        // Confidence-based sizing: high confidence → thicker edge
+        const confidence = rel.confidence ?? 1.0;
+        const confidenceSize = 0.5 + confidence * 0.5; // range: 0.5 - 1.0
         const curvature = 0.12 + (Math.random() * 0.08);
-        
+
         graph.addEdge(rel.sourceId, rel.targetId, {
-          size: edgeBaseSize * style.sizeMultiplier,
-          color: style.color,
+          size: edgeBaseSize * sizeMultiplier * confidenceSize,
+          color,
           relationType: rel.type,
           type: 'curved',
-          curvature: curvature,
+          curvature,
+          confidence,
         });
       }
     }

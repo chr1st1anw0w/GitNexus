@@ -371,10 +371,6 @@ export const TaskBoard: React.FC = () => {
       <DragOverlay dropAnimation={null}>
         {activeTask ? <TaskCard task={activeTask} /> : null}
       </DragOverlay>
-
-      {selectedTaskId && (
-        <TaskDetailModal onClose={() => setSelectedTaskId(null)} />
-      )}
     </DndContext>
   );
 };

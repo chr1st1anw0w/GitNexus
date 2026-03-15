@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef, DragEvent } from 'react';
-import { Upload, FileArchive, Github, Loader2, ArrowRight, Key, Eye, EyeOff, Globe, X } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect, DragEvent } from 'react';
+import { Upload, FileArchive, Github, Loader2, ArrowRight, Key, Eye, EyeOff, Globe, X, Zap, Database, FolderOpen, Search, CheckSquare, Square } from 'lucide-react';
 import { cloneRepository, parseGitHubUrl } from '../services/git-clone';
-import { connectToServer, type ConnectToServerResult } from '../services/server-connection';
+import { connectToServer, normalizeServerUrl, fetchRepoInfo, type ConnectToServerResult, type ServerRepoInfo } from '../services/server-connection';
 import { FileEntry } from '../services/zip';
 
 interface DropZoneProps {
@@ -18,7 +18,7 @@ function formatBytes(bytes: number): string {
 
 export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZoneProps) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [activeTab, setActiveTab] = useState<'zip' | 'github' | 'server'>('zip');
+  const [activeTab, setActiveTab] = useState<'zip' | 'github' | 'server' | 'folder'>('zip');
   const [githubUrl, setGithubUrl] = useState('');
   const [githubToken, setGithubToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -37,6 +37,108 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
     total: number | null;
   }>({ phase: '', downloaded: 0, total: null });
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Auto-detect local GitNexus server
+  const [detectedServer, setDetectedServer] = useState<{
+    url: string;
+    repoInfo: ServerRepoInfo;
+  } | null>(null);
+  const [isAutoConnecting, setIsAutoConnecting] = useState(false);
+
+  useEffect(() => {
+    const LOCAL_URLS = ['http://localhost:4747', 'http://127.0.0.1:4747'];
+    let cancelled = false;
+
+    const detectServer = async () => {
+      for (const url of LOCAL_URLS) {
+        try {
+          const baseUrl = normalizeServerUrl(url);
+          const repoInfo = await fetchRepoInfo(baseUrl);
+          if (!cancelled && repoInfo?.name) {
+            setDetectedServer({ url, repoInfo });
+            return;
+          }
+        } catch {
+          // Server not running at this URL — continue
+        }
+      }
+    };
+
+    detectServer();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleAutoConnect = async () => {
+    if (!detectedServer || !onServerConnect) return;
+    setIsAutoConnecting(true);
+    setError(null);
+
+    try {
+      const result = await connectToServer(detectedServer.url);
+      onServerConnect(result, detectedServer.url);
+    } catch (err) {
+      console.error('Auto-connect failed:', err);
+      setError(err instanceof Error ? err.message : 'Failed to connect');
+    } finally {
+      setIsAutoConnecting(false);
+    }
+  };
+
+  // Folder picker state
+  interface FolderEntry { path: string; size: number; selected: boolean; }
+  const [folderEntries, setFolderEntries] = useState<FolderEntry[]>([]);
+  const [folderSearch, setFolderSearch] = useState('');
+  const [folderName, setFolderName] = useState('');
+  const [isReadingFolder, setIsReadingFolder] = useState(false);
+
+  const handleFolderPick = async () => {
+    try {
+      // @ts-expect-error — showDirectoryPicker is not in all TS libs
+      const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker();
+      setFolderName(dirHandle.name);
+      setIsReadingFolder(true);
+      setError(null);
+
+      const entries: FolderEntry[] = [];
+      const walk = async (handle: FileSystemDirectoryHandle, prefix: string) => {
+        for await (const [name, entry] of (handle as any).entries()) {
+          if (name.startsWith('.') || name === 'node_modules') continue;
+          if (entry.kind === 'file') {
+            const file = await (entry as FileSystemFileHandle).getFile();
+            entries.push({ path: prefix + name, size: file.size, selected: true });
+          } else if (entry.kind === 'directory') {
+            await walk(entry as FileSystemDirectoryHandle, prefix + name + '/');
+          }
+        }
+      };
+      await walk(dirHandle, '');
+      entries.sort((a, b) => a.path.localeCompare(b.path));
+      setFolderEntries(entries);
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        setError('Failed to read folder');
+      }
+    } finally {
+      setIsReadingFolder(false);
+    }
+  };
+
+  const toggleFolderEntry = (path: string) => {
+    setFolderEntries(prev => prev.map(e => e.path === path ? { ...e, selected: !e.selected } : e));
+  };
+
+  const toggleAllFolderEntries = (selected: boolean) => {
+    setFolderEntries(prev => prev.map(e => ({ ...e, selected })));
+  };
+
+  const filteredFolderEntries = folderEntries.filter(e =>
+    !folderSearch || e.path.toLowerCase().includes(folderSearch.toLowerCase())
+  );
+
+  const selectedFolderStats = {
+    count: folderEntries.filter(e => e.selected).length,
+    totalSize: folderEntries.filter(e => e.selected).reduce((sum, e) => sum + e.size, 0),
+  };
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -190,6 +292,49 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
       </div>
 
       <div className="relative w-full max-w-lg">
+        {/* Auto-detected local server banner */}
+        {detectedServer && (
+          <div className="mb-4 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 flex items-center justify-center bg-emerald-500/20 rounded-lg">
+                <Database className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-emerald-300">
+                  Local GitNexus Server Detected
+                </p>
+                <p className="text-xs text-emerald-400/70">
+                  {detectedServer.repoInfo.name} — {detectedServer.repoInfo.stats?.nodes ?? '?'} nodes, {detectedServer.repoInfo.stats?.edges ?? '?'} edges
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleAutoConnect}
+              disabled={isAutoConnecting}
+              className="
+                w-full flex items-center justify-center gap-2
+                px-4 py-2.5
+                bg-emerald-500 hover:bg-emerald-400
+                text-white font-medium rounded-xl
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-all duration-200
+              "
+            >
+              {isAutoConnecting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Connect to {detectedServer.repoInfo.name}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Tab Switcher */}
         <div className="flex mb-4 bg-surface border border-border-default rounded-xl p-1">
           <button
@@ -233,6 +378,20 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
           >
             <Globe className="w-4 h-4" />
             Server
+          </button>
+          <button
+            onClick={() => { setActiveTab('folder'); setError(null); }}
+            className={`
+              flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg
+              text-sm font-medium transition-all duration-200
+              ${activeTab === 'folder'
+                ? 'bg-accent text-white shadow-md'
+                : 'text-text-secondary hover:text-text-primary hover:bg-elevated'
+              }
+            `}
+          >
+            <FolderOpen className="w-4 h-4" />
+            Folder
           </button>
         </div>
 
@@ -564,6 +723,108 @@ export const DropZone = ({ onFileSelect, onGitClone, onServerConnect }: DropZone
                 No WASM needed
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Folder Tab */}
+        {activeTab === 'folder' && (
+          <div className="p-8 bg-surface border border-border-default rounded-3xl">
+            <div className="mx-auto w-20 h-20 mb-6 flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg">
+              <FolderOpen className="w-10 h-10 text-white" />
+            </div>
+
+            <h2 className="text-xl font-semibold text-text-primary text-center mb-2">
+              Open Local Folder
+            </h2>
+            <p className="text-sm text-text-secondary text-center mb-6">
+              Select a folder to scan and analyze its file structure
+            </p>
+
+            <button
+              onClick={handleFolderPick}
+              disabled={isReadingFolder}
+              className="
+                w-full flex items-center justify-center gap-2
+                px-4 py-3 mb-4
+                bg-accent hover:bg-accent/90
+                text-white font-medium rounded-xl
+                disabled:opacity-50 disabled:cursor-not-allowed
+                transition-all duration-200
+              "
+            >
+              {isReadingFolder ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Reading folder...
+                </>
+              ) : (
+                <>
+                  <FolderOpen className="w-5 h-5" />
+                  Choose Folder
+                </>
+              )}
+            </button>
+
+            {folderEntries.length > 0 && (
+              <div className="space-y-3">
+                {/* Search + Select All */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type="text"
+                      value={folderSearch}
+                      onChange={(e) => setFolderSearch(e.target.value)}
+                      placeholder="Filter files..."
+                      className="w-full pl-9 pr-3 py-2 bg-elevated border border-border-default rounded-lg text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                  <button
+                    onClick={() => toggleAllFolderEntries(selectedFolderStats.count < folderEntries.length)}
+                    className="p-2 bg-elevated border border-border-default rounded-lg text-text-secondary hover:text-text-primary transition-colors"
+                    title={selectedFolderStats.count < folderEntries.length ? 'Select all' : 'Deselect all'}
+                  >
+                    {selectedFolderStats.count < folderEntries.length
+                      ? <CheckSquare className="w-4 h-4" />
+                      : <Square className="w-4 h-4" />
+                    }
+                  </button>
+                </div>
+
+                {/* File list */}
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-border-default bg-elevated">
+                  {filteredFolderEntries.map((entry) => (
+                    <button
+                      key={entry.path}
+                      onClick={() => toggleFolderEntry(entry.path)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-hover transition-colors border-b border-border-subtle last:border-b-0"
+                    >
+                      <span className={`w-3.5 h-3.5 rounded border flex-shrink-0 flex items-center justify-center text-[10px] ${entry.selected ? 'bg-accent border-accent text-white' : 'border-border-default'}`}>
+                        {entry.selected && '✓'}
+                      </span>
+                      <span className="flex-1 truncate text-xs font-mono text-text-secondary">{entry.path}</span>
+                      <span className="text-[10px] text-text-muted flex-shrink-0">{formatBytes(entry.size)}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stats */}
+                <div className="flex items-center justify-between text-xs text-text-muted px-1">
+                  <span>{selectedFolderStats.count} / {folderEntries.length} files selected</span>
+                  <span>{formatBytes(selectedFolderStats.totalSize)}</span>
+                </div>
+
+                {/* Hints */}
+                <div className="flex items-center justify-center gap-3 text-xs text-text-muted">
+                  <span className="px-3 py-1.5 bg-elevated border border-border-subtle rounded-md">
+                    {folderName}
+                  </span>
+                  <span className="px-3 py-1.5 bg-elevated border border-border-subtle rounded-md">
+                    File System API
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

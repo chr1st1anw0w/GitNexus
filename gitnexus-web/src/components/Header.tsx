@@ -1,4 +1,4 @@
-import { Search, Settings, HelpCircle, Sparkles, Github, Star, ChevronDown } from 'lucide-react';
+import { Search, Settings, HelpCircle, Sparkles, ChevronDown } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import type { RepoSummary } from '../services/server-connection';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
@@ -22,9 +22,10 @@ interface HeaderProps {
   onFocusNode?: (nodeId: string) => void;
   availableRepos?: RepoSummary[];
   onSwitchRepo?: (repoName: string) => void;
+  onResetAnalysis?: () => void;
 }
 
-export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: HeaderProps) => {
+export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo, onResetAnalysis }: HeaderProps) => {
   const {
     projectName,
     graph,
@@ -123,6 +124,18 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
           </div>
           <span className="font-semibold text-[15px] tracking-tight">GitNexus</span>
         </div>
+
+        {/* Reselect Analysis Target Button */}
+        {onResetAnalysis && (
+          <button
+            onClick={onResetAnalysis}
+            className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle rounded-lg text-sm text-text-secondary hover:bg-hover hover:text-text-primary hover:border-accent/50 transition-all group"
+            title="Reselect analysis target"
+          >
+            <span className="text-xs">↻</span>
+            <span className="hidden sm:inline">Reselect Target</span>
+          </button>
+        )}
 
         {/* Project badge / Repo selector dropdown */}
         {projectName && (
@@ -236,18 +249,6 @@ export const Header = ({ onFocusNode, availableRepos = [], onSwitchRepo }: Heade
 
       {/* Right section */}
       <div className="flex items-center gap-2">
-        {/* GitHub Star Button */}
-        <a
-          href="https://github.com/abhigyanpatwari/GitNexus"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 group"
-        >
-          <Github className="w-4 h-4" />
-          <span className="hidden sm:inline">Star if cool</span>
-          <Star className="w-3.5 h-3.5 group-hover:fill-yellow-300 group-hover:text-yellow-300 transition-all" />
-          <span className="hidden sm:inline">✨</span>
-        </a>
 
         {/* Stats */}
         {graph && (
