@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { AppStateProvider, useAppState } from './hooks/useAppState';
 import { DropZone } from './components/DropZone';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -12,12 +13,18 @@ import { CodeReferencesPanel } from './components/CodeReferencesPanel';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
+import { TaskBoard } from './components/TaskBoard';
+import { TaskDetailModal } from './components/TaskDetailModal';
+import { ActivityImpactView } from './components/ActivityImpactView';
+import { DashboardView } from './components/DashboardView';
 import { connectToServer, fetchRepos, normalizeServerUrl, type ConnectToServerResult } from './services/server-connection';
 
 const AppContent = () => {
   const {
     viewMode,
     setViewMode,
+    hubTab,
+    setHubTab,
     setGraph,
     setFileContents,
     setProgress,
@@ -266,10 +273,73 @@ const AppContent = () => {
     return <LoadingOverlay progress={progress} />;
   }
 
+  // Hub view
+  if (viewMode === 'hub') {
+    return (
+      <div className="flex flex-col h-screen bg-void overflow-hidden">
+        <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} />
+        
+        {/* Hub Sub-navigation */}
+        <div className="flex items-center gap-8 px-8 border-b border-border-subtle bg-deep/50 backdrop-blur-md">
+          {[
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'tasks', label: 'Task Board' },
+            { id: 'impact', label: 'Impact Graph' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setHubTab(tab.id as any)}
+              className={`py-4 text-sm font-medium transition-all relative ${
+                hubTab === tab.id ? 'text-white' : 'text-text-muted hover:text-text-secondary'
+              }`}
+            >
+              {tab.label}
+              {hubTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent shadow-glow transition-all" />
+              )}
+            </button>
+          ))}
+          <div className="flex-1" />
+          <button 
+            onClick={() => setViewMode('exploring')}
+            className="text-xs font-mono text-text-muted hover:text-accent flex items-center gap-2 transition-colors"
+          >
+            QUIT_HUB <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <main className="flex-1 overflow-hidden">
+          {hubTab === 'dashboard' && <DashboardView />}
+          {hubTab === 'tasks' && <TaskBoard />}
+          {hubTab === 'impact' && <ActivityImpactView />}
+        </main>
+
+        <StatusBar />
+        <SettingsPanel
+          isOpen={isSettingsPanelOpen}
+          onClose={() => setSettingsPanelOpen(false)}
+          onSettingsSaved={handleSettingsSaved}
+        />
+        {/* Task details can be opened from everywhere if state is global, but for now we keep it internal to components */}
+      </div>
+    );
+  }
+
   // Exploring view
   return (
     <div className="flex flex-col h-screen bg-void overflow-hidden">
       <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} />
+      
+      {/* Quick link to Hub */}
+      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10">
+        <button 
+          onClick={() => setViewMode('hub')}
+          className="px-4 py-1.5 rounded-full bg-surface/80 border border-border-subtle backdrop-blur-md text-[10px] uppercase tracking-widest font-bold text-text-muted hover:text-white hover:border-accent transition-all flex items-center gap-2"
+        >
+          <Sparkles className="w-3 h-3 text-accent" />
+          Enter AI Hub
+        </button>
+      </div>
 
       <main className="flex-1 flex min-h-0">
         {/* Left Panel - File Tree */}

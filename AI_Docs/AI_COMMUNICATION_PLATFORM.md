@@ -49,3 +49,50 @@
 - **最佳實務**：所有 AI 必須遵循 AGENTS.md 規則，使用 `gitnexus_impact` 前置檢查；定期同步 GitHub。
 
 此平台將提升 AI 協作效率，確保 GitNexus 專案的順利推進。
+
+---
+
+## 📊 開發進度追蹤
+
+完整的功能元件開發週期計劃與狀態追蹤，請參閱：
+
+**[→ DEVELOPMENT_ROADMAP.md](./DEVELOPMENT_ROADMAP.md)**
+
+### 快速進度總覽 (2026-03-15)
+
+| 階段 | 完成度 | 狀態 | 預計完成 |
+|------|--------|------|----------|
+| Phase 1: 靜態元件設計 | 100% | ✅ 完成 | 2026-03-15 |
+| Phase 2: 元件骨架建立 | 85% | 🔄 進行中 | 2026-03-16 |
+| Phase 3: 真實數據串接 | 15% | 🔄 進行中 | 2026-03-17 |
+| Phase 4: 互動功能開發 | 0% | ⏳ 待開始 | 2026-03-18 |
+| Phase 5: 後端 API 實作 | 0% | ⏳ 待開始 | 2026-03-19 |
+| Phase 6: 整合測試 | 0% | ⏳ 待開始 | 2026-03-20 |
+
+**總體進度**: 33% (20/60 任務完成)
+
+### 已完成的元件 ✅
+
+- [x] TaskBoard.tsx — 看板 UI 骨架（含 MOCK_TASKS, 4 欄位, 篩選側邊欄）
+- [x] TaskDetailModal.tsx — 詳情 UI 骨架（Split panel, action buttons, MCP log）
+- [x] ActivityImpactView.tsx — 影響分析 UI 骨架（Graph + Activity tabs）
+- [x] DashboardView.tsx — 儀表板 UI 骨架（Stats, quick actions, agent status）
+- [x] collaboration.ts — 完整型別系統（TaskDetail, ImpactSummary, ActivityEvent...）
+- [x] useTasks/useTaskDetail/useActivity — Hooks 骨架（mock data）
+- [x] task-service.ts — TaskService Interface 定義
+
+### 進行中的任務 🔄
+
+- [ ] 真實數據串接（移除 mock data，連接後端 API）
+- [ ] 拖拽功能（dnd-kit 整合）
+- [ ] 後端 API 實作（10 個端點）
+- [ ] Zustand Store 建立
+- [ ] 依賴安裝（8 個套件）
+
+### 下一步行動 🎯
+
+1. **今天 (2026-03-15)**: 啟動 6 個 Sub-Agents 平行開發
+2. **明天 (2026-03-16)**: Claude 完成依賴安裝 + Zustand store
+3. **3/17**: Phase 3 完成（所有前端真實數據串接）
+4. **3/18-20**: Jules 接手後端 API 實作與整合測試
+5. **3/21**: GitNexus AI Hub 正式上線 🚀

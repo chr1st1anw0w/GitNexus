@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:showcase": "vite --open /showcase.html",
+    "build:showcase": "tsc -b && vite build --mode showcase",
+    "preview:showcase": "vite preview --open /showcase.html"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.0.0",

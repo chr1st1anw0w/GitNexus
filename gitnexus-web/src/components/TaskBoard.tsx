@@ -95,9 +95,57 @@ const ColumnIcon = ({ col }: { col: Column }) => {
   return <Circle className="w-3.5 h-3.5 text-[#5a5a70]" />;
 };
 
+const FilterSidebar = () => {
+  return (
+    <div className="w-56 border-r border-border-subtle bg-deep flex flex-shrink-0 flex-col p-4 gap-6">
+      <div>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-4">Categories</h3>
+        <div className="space-y-1">
+          {['Infrastructure', 'Frontend', 'Safety & QA', 'Product'].map((cat, i) => (
+            <button key={cat} className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors ${i === 2 ? 'bg-accent/10 text-accent font-semibold' : 'text-text-secondary hover:bg-hover'}`}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-4">Risk Level</h3>
+        <div className="space-y-1">
+          {[
+            { label: 'Critical', color: '#ef4444' },
+            { label: 'High', color: '#f97316', active: true },
+            { label: 'Standard', color: '#10b981' },
+          ].map((risk) => (
+            <button key={risk.label} className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs hover:bg-hover group transition-all">
+              <div className="flex items-center gap-2 text-text-secondary">
+                 <div className="w-1.5 h-1.5 rounded-full" style={{ background: risk.color, boxShadow: risk.active ? `0 0 8px ${risk.color}` : 'none' }} />
+                 {risk.label}
+              </div>
+              {risk.active && <div className="w-1 h-1 rounded-full bg-node-variable shadow-[0_0_8px_#f59e0b]" />}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="mt-auto p-4 rounded-3xl bg-amber-500/5 border border-amber-500/10 relative overflow-hidden group">
+         <div className="absolute inset-0 bg-amber-500/5 blur-xl group-hover:opacity-100 opacity-0 transition-opacity" />
+         <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider mb-1">Attention Required</p>
+         <p className="text-[11px] text-amber-500/80 leading-relaxed">
+           3 tasks in "In Progress" are approaching deadline.
+         </p>
+      </div>
+    </div>
+  );
+};
+
 const TaskCard = ({ task }: { task: Task }) => {
   const priority = PRIORITY_CONFIG[task.priority];
   const isInReview = task.status === 'In Review';
+  
+  // Mock progress based on title length or random
+  const progress = task.status === 'Done' ? 100 : task.status === 'To Do' ? 0 : 45;
+  const isOverdue = task.id === 'T-101' || task.id === 'T-100'; // Mock overdue logic
 
   return (
     <div
@@ -139,6 +187,19 @@ const TaskCard = ({ task }: { task: Task }) => {
           {task.title}
         </p>
 
+        {/* Progress Bar (Flow A-01) */}
+        {task.status === 'In Progress' && (
+          <div className="mb-4 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] text-text-muted font-mono uppercase">
+              <span>Progress</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1 bg-surface rounded-full overflow-hidden">
+               <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between pt-2.5 border-t border-[var(--color-border-subtle)]">
           <div className="flex items-center gap-2">
@@ -149,14 +210,14 @@ const TaskCard = ({ task }: { task: Task }) => {
             />
             {/* Assignee */}
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shadow-sm"
               style={{ background: `${task.roleColor}60`, border: `1px solid ${task.roleColor}40` }}
             >
               {task.assignee.slice(0, 2)}
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
-            <Clock className="w-3 h-3" />
+          <div className={`flex items-center gap-1 text-[11px] font-mono ${isOverdue ? 'text-node-file font-bold' : 'text-text-muted'}`}>
+            <Clock className={`w-3 h-3 ${isOverdue ? 'animate-pulse' : ''}`} />
             {task.dueDate}
           </div>
         </div>
@@ -180,91 +241,50 @@ const TaskCard = ({ task }: { task: Task }) => {
   );
 };
 
+const ColumnStats = ({ total, overdue }: { total: number; overdue: number }) => {
+  return (
+    <div className="px-4 py-3 border-t border-border-subtle bg-deep/50 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col">
+          <span className="text-[9px] uppercase tracking-wider text-text-muted">Total</span>
+          <span className="text-xs font-bold text-text-primary">{total}</span>
+        </div>
+        <div className="w-px h-6 bg-border-subtle" />
+        <div className="flex flex-col">
+          <span className="text-[9px] uppercase tracking-wider text-text-muted">Overdue</span>
+          <span className={`text-xs font-bold ${overdue > 0 ? 'text-node-file' : 'text-node-function'}`}>{overdue}</span>
+        </div>
+      </div>
+      <div className="flex -space-x-1.5">
+          {[1,2,3].map(i => (
+            <div key={i} className="w-5 h-5 rounded-full bg-surface border border-deep flex items-center justify-center text-[8px] text-text-muted font-bold">
+               {String.fromCharCode(64 + i)}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
 export const TaskBoard: React.FC = () => {
   const [branch] = useState('main');
 
   return (
-    <div
-      className="flex flex-col h-full w-full overflow-hidden"
-      style={{
-        background: 'var(--color-void)',
-        fontFamily: 'var(--font-sans)',
-        color: 'var(--color-text-primary)',
-      }}
-    >
-      {/* ── Top Navigation Bar ── */}
-      <header
-        className="flex items-center justify-between px-5 py-3 border-b border-dashed"
-        style={{ background: 'var(--color-deep)', borderColor: 'var(--color-border-subtle)' }}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 flex items-center justify-center rounded-md text-white text-sm font-bold"
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-                boxShadow: '0 0 20px rgba(124,58,237,0.4)',
-              }}
-            >
-              ◇
-            </div>
-            <span className="font-semibold text-[15px] tracking-tight">
-              GitNexus<span style={{ color: 'var(--color-text-muted)' }}> AI Hub</span>
-            </span>
-          </div>
-
-          {/* Branch Selector */}
-          <button
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors"
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border-subtle)',
-              color: 'var(--color-text-secondary)',
-            }}
-          >
-            <GitBranch className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
-            <span className="font-mono">{branch}</span>
-            <ChevronDown className="w-3 h-3 opacity-50" />
-          </button>
-        </div>
-
-        {/* Right: New Task button + Avatar */}
-        <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:-translate-y-0.5"
-            style={{
-              background: 'linear-gradient(135deg, #7c3aed, #5b21b6)',
-              color: 'white',
-              boxShadow: '0 0 20px rgba(124,58,237,0.4)',
-            }}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            New Task
-          </button>
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{
-              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-              boxShadow: '0 0 12px rgba(124,58,237,0.3)',
-            }}
-          >
-            CW
-          </div>
-        </div>
-      </header>
-
-      {/* ── Kanban Board ── */}
-      <div className="flex-1 overflow-x-auto p-6">
-        <div className="flex gap-5 h-full min-w-max">
+    <div className="flex h-full w-full overflow-hidden bg-void">
+      <FilterSidebar />
+      
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Kanban Board */}
+        <div className="flex-1 overflow-x-auto p-6 flex gap-6 min-w-max bg-blob-center">
           {COLUMNS.map((col) => {
             const tasks = MOCK_TASKS.filter((t) => t.status === col);
             const isReviewCol = col === 'In Review';
+            const overdueCount = tasks.filter(t => t.id === 'T-101' || t.id === 'T-100').length;
 
             return (
               <div
                 key={col}
-                className="flex flex-col w-72 flex-shrink-0 rounded-2xl overflow-hidden"
+                className="flex flex-col w-72 flex-shrink-0 rounded-2xl overflow-hidden group/col"
                 style={{
                   background: 'var(--color-deep)',
                   border: `1px solid ${isReviewCol ? 'rgba(124,58,237,0.25)' : 'var(--color-border-subtle)'}`,
@@ -273,48 +293,42 @@ export const TaskBoard: React.FC = () => {
               >
                 {/* Column Header */}
                 <div
-                  className="flex items-center justify-between px-4 py-3 border-b"
+                  className="flex items-center justify-between px-4 py-4 border-b group-hover/col:bg-surface/30 transition-colors"
                   style={{ borderColor: 'var(--color-border-subtle)' }}
                 >
                   <div className="flex items-center gap-2">
                     <ColumnIcon col={col} />
-                    <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                    <span className="text-[13px] font-bold tracking-tight text-white uppercase">
                       {col}
                     </span>
                     <span
-                      className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
-                      style={{
-                        background: 'var(--color-surface)',
-                        border: '1px solid var(--color-border-default)',
-                        color: 'var(--color-text-muted)',
-                      }}
+                      className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface border border-border-default text-text-muted"
                     >
                       {tasks.length}
                     </span>
                   </div>
                   <button className="p-1 rounded-md hover:bg-[var(--color-hover)] transition-colors">
-                    <MoreHorizontal className="w-4 h-4" style={{ color: 'var(--color-text-muted)' }} />
+                    <MoreHorizontal className="w-4 h-4 text-text-muted" />
                   </button>
                 </div>
 
                 {/* Cards */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <div className="flex-1 overflow-y-auto p-3.5 space-y-3.5 scrollbar-thin">
                   {tasks.map((task) => (
                     <TaskCard key={task.id} task={task} />
                   ))}
 
                   {/* Add card button */}
                   <button
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all opacity-50 hover:opacity-100"
-                    style={{
-                      border: '1px dashed var(--color-border-default)',
-                      color: 'var(--color-text-muted)',
-                    }}
+                    className="w-full flex items-center gap-2 px-3 py-3 rounded-xl text-sm transition-all opacity-40 hover:opacity-100 hover:bg-surface border border-dashed border-border-default text-text-muted"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add task
                   </button>
                 </div>
+
+                {/* Column Stats (Flow A-01) */}
+                <ColumnStats total={tasks.length} overdue={overdueCount} />
               </div>
             );
           })}
