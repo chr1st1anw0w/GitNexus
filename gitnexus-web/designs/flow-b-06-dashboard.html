@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitNexus AI Hub — Dashboard</title>
+<style>
+  :root {
+    --base:#080c14; --glass-bg:rgba(255,255,255,0.06); --glass-bg-md:rgba(255,255,255,0.08);
+    --glass-bd:rgba(255,255,255,0.10); --glass-bd-md:rgba(255,255,255,0.15);
+    --accent:#6366f1; --accent-dark:#4f46e5; --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
+    --text-pri:#f1f5f9; --text-sec:#94a3b8; --text-muted:#64748b;
+    --sidebar-w:240px; --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+    --blur:blur(20px); --font:'Helvetica Neue',Helvetica,'Inter',Arial,sans-serif;
+    --s1:8px; --s2:16px; --s3:24px; --s4:32px; --s5:40px; --s6:48px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;font-family:var(--font);background:var(--base);color:var(--text-pri);-webkit-font-smoothing:antialiased;overflow:hidden;}
+  .app { display:flex; height:100vh; }
+  .sidebar {
+    width:var(--sidebar-w); flex-shrink:0; display:flex; flex-direction:column;
+    background:rgba(255,255,255,0.04); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur);
+    border-right:1px solid var(--glass-bd); padding:var(--s3) 0; z-index:10;
+  }
+  .sidebar-logo { display:flex; align-items:center; gap:10px; padding:0 var(--s3) var(--s3); border-bottom:1px solid var(--glass-bd); margin-bottom:var(--s2); }
+  .sidebar-logo-text { font-size:14px; font-weight:700; letter-spacing:-0.2px; }
+  .sidebar-logo-sub { font-size:10px; color:var(--text-muted); letter-spacing:0.3px; text-transform:uppercase; }
+  .nav { flex:1; padding:0 var(--s1); }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px var(--s2); border-radius:var(--radius-sm); font-size:13px; font-weight:500; color:var(--text-sec); cursor:pointer; transition:all 0.15s; margin-bottom:2px; }
+  .nav-item:hover { background:rgba(255,255,255,0.06); color:var(--text-pri); }
+  .nav-item.active { background:rgba(99,102,241,0.15); color:#a5b4fc; }
+  .nav-icon { width:16px; height:16px; opacity:0.7; flex-shrink:0; }
+  .nav-item.active .nav-icon { opacity:1; }
+  .mcp-block { padding:var(--s2) var(--s3); border-top:1px solid var(--glass-bd); }
+  .mcp-title { font-size:10px; font-weight:600; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:var(--s1); }
+  .mcp-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; }
+  .mcp-name { font-size:12px; color:var(--text-sec); }
+  .mcp-status { display:flex; align-items:center; gap:5px; }
+  .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .dot-green { background:var(--success); box-shadow:0 0 6px rgba(16,185,129,0.7); }
+  .dot-amber { background:var(--warning); box-shadow:0 0 6px rgba(245,158,11,0.7); animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .mcp-label { font-size:10px; color:var(--text-muted); }
+  .user-card { margin:var(--s2) var(--s2) 0; padding:var(--s2); background:rgba(255,255,255,0.05); border:1px solid var(--glass-bd); border-radius:var(--radius-md); display:flex; align-items:center; gap:10px; }
+  .avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+  .user-info { flex:1; min-width:0; }
+  .user-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-role { display:inline-block; margin-top:3px; font-size:10px; font-weight:600; padding:2px 7px; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.4); border-radius:4px; color:#a5b4fc; letter-spacing:0.3px; }
+  .main { flex:1; overflow-y:auto; padding:var(--s4); display:flex; flex-direction:column; gap:var(--s3); }
+  .main::-webkit-scrollbar { width:4px; }
+  .main::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px; }
+  .welcome-title { font-size:22px; font-weight:700; letter-spacing:-0.4px; margin-bottom:4px; }
+  .welcome-sub { font-size:14px; color:var(--text-sec); }
+  .review-chip { display:inline-flex; align-items:center; gap:4px; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.35); border-radius:6px; padding:2px 8px; font-size:12px; color:var(--warning); font-weight:600; margin-left:4px; }
+  .glass-card { background:var(--glass-bg); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); border:1px solid var(--glass-bd); border-radius:var(--radius-md); padding:var(--s3); }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s2); }
+  .stat-card { text-align:left; }
+  .stat-label { font-size:11px; font-weight:500; color:var(--text-muted); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:var(--s1); }
+  .stat-value { font-size:28px; font-weight:700; letter-spacing:-1px; line-height:1; margin-bottom:4px; }
+  .stat-change { font-size:11px; color:var(--text-muted); }
+  .stat-card.danger .stat-value { color:#fca5a5; }
+  .stat-card.danger { border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.06); }
+  .content-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); }
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--s3); }
+  .section-title { font-size:13px; font-weight:700; letter-spacing:0.2px; }
+  .section-link { font-size:11px; color:var(--accent); cursor:pointer; }
+  .timeline { display:flex; flex-direction:column; }
+  .tl-item { display:flex; gap:var(--s2); padding:var(--s2) 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .tl-item:last-child { border-bottom:none; }
+  .tl-dot-col { display:flex; flex-direction:column; align-items:center; flex-shrink:0; padding-top:3px; }
+  .tl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .tl-line { width:1px; flex:1; background:rgba(255,255,255,0.06); margin-top:4px; }
+  .tl-body { flex:1; min-width:0; }
+  .tl-title { font-size:13px; font-weight:500; margin-bottom:2px; }
+  .tl-meta { font-size:11px; color:var(--text-muted); }
+  .tl-tag { display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; font-weight:600; margin-left:4px; }
+  .tag-commit { background:rgba(16,185,129,0.15); color:#6ee7b7; }
+  .tag-pr { background:rgba(99,102,241,0.15); color:#a5b4fc; }
+  .tag-review { background:rgba(245,158,11,0.15); color:#fcd34d; }
+  .tag-deploy { background:rgba(16,185,129,0.15); color:#6ee7b7; }
+  .tag-alert { background:rgba(239,68,68,0.15); color:#fca5a5; }
+  .agent-list { display:flex; flex-direction:column; gap:var(--s1); }
+  .agent-row { display:flex; align-items:center; gap:var(--s2); padding:10px var(--s2); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius-sm); }
+  .agent-avatar { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+  .agent-info { flex:1; min-width:0; }
+  .agent-name { font-size:12px; font-weight:600; }
+  .agent-task { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .agent-status { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-muted); flex-shrink:0; }
+  .quick-actions-title { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:var(--s2); }
+  .qa-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--s2); }
+  .qa-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--s1); padding:var(--s2); background:var(--glass-bg); border:1px solid var(--glass-bd); border-radius:var(--radius-md); cursor:pointer; transition:all 0.15s; text-align:center; }
+  .qa-btn:hover { background:rgba(255,255,255,0.10); border-color:rgba(255,255,255,0.2); transform:translateY(-1px); }
+  .qa-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:2px; }
+  .qa-label { font-size:12px; font-weight:500; color:var(--text-sec); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+        <polygon points="20,2 36,11 36,29 20,38 4,29 4,11" fill="rgba(99,102,241,0.2)" stroke="rgba(99,102,241,0.8)" stroke-width="1.5"/>
+        <circle cx="20" cy="20" r="4" fill="#6366f1"/>
+        <line x1="20" y1="14" x2="20" y2="10" stroke="rgba(99,102,241,0.7)" stroke-width="1.5"/>
+        <line x1="25.2" y1="17" x2="28.6" y2="15" stroke="rgba(99,102,241,0.7)" stroke-width="1.5"/>
+        <line x1="14.8" y1="17" x2="11.4" y2="15" stroke="rgba(99,102,241,0.7)" stroke-width="1.5"/>
+      </svg>
+      <div><div class="sidebar-logo-text">GitNexus</div><div class="sidebar-logo-sub">AI Hub</div></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zm8 0A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm-8 8A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm8 0A1.5 1.5 0 0110.5 9h3A1.5 1.5 0 0115 10.5v3A1.5 1.5 0 0113.5 15h-3A1.5 1.5 0 019 13.5v-3z"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5A.5.5 0 012 1h12a.5.5 0 01.5.5v2a.5.5 0 01-.128.334L10 8.692V13.5a.5.5 0 01-.342.474l-3 1A.5.5 0 016 14.5V8.692L1.628 3.834A.5.5 0 011.5 3.5v-2z"/></svg>
+        Task Board
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16a2 2 0 002-2H6a2 2 0 002 2zm.995-14.901a1 1 0 10-1.99 0A5.002 5.002 0 003 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/></svg>
+        Activity
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1h3a.5.5 0 01.5.5v1H6v-1a.5.5 0 01.5-.5zM11 2.5v-1A1.5 1.5 0 009.5 0h-3A1.5 1.5 0 005 1.5v1H1.5a.5.5 0 000 1h.538l.853 10.66A2 2 0 004.885 16h6.23a2 2 0 001.994-1.84l.853-10.66h.538a.5.5 0 000-1H11z"/></svg>
+        Graph View
+      </div>
+      <div class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z"/></svg>
+        Settings
+      </div>
+    </nav>
+    <div class="mcp-block">
+      <div class="mcp-title">MCP Status</div>
+      <div class="mcp-row"><span class="mcp-name">Figma</span><div class="mcp-status"><div class="dot dot-green"></div><span class="mcp-label">Connected</span></div></div>
+      <div class="mcp-row"><span class="mcp-name">GitHub</span><div class="mcp-status"><div class="dot dot-green"></div><span class="mcp-label">Connected</span></div></div>
+      <div class="mcp-row"><span class="mcp-name">NotebookLM</span><div class="mcp-status"><div class="dot dot-amber"></div><span class="mcp-label">Connecting...</span></div></div>
+    </div>
+    <div class="user-card">
+      <div class="avatar">C</div>
+      <div class="user-info"><div class="user-name">Christian Wu</div><div class="user-role">UI · Gemini</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="welcome">
+      <h1 class="welcome-title">Good morning, Christian <span class="review-chip">3 tasks need your review</span></h1>
+      <p class="welcome-sub">Sunday, March 15 · GitNexus v2.0 · Branch: feature/pattern-generator-html-demos</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="glass-card stat-card"><div class="stat-label">Active Tasks</div><div class="stat-value">12</div><div class="stat-change">+3 since yesterday</div></div>
+      <div class="glass-card stat-card"><div class="stat-label">Commits Today</div><div class="stat-value">8</div><div class="stat-change">Across 2 branches</div></div>
+      <div class="glass-card stat-card"><div class="stat-label">MCP Calls</div><div class="stat-value">47</div><div class="stat-change">Figma 21 · GitHub 26</div></div>
+      <div class="glass-card stat-card danger"><div class="stat-label">Risk Alerts</div><div class="stat-value">2</div><div class="stat-change" style="color:#fca5a5">Requires attention</div></div>
+    </div>
+
+    <div class="content-grid">
+      <div class="glass-card">
+        <div class="section-header"><span class="section-title">Recent Activity</span><span class="section-link">View all</span></div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot-col"><div class="tl-dot" style="background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6)"></div><div class="tl-line"></div></div>
+            <div class="tl-body"><div class="tl-title">Merged PR #42 — Glass UI Components <span class="tl-tag tag-pr">PR</span></div><div class="tl-meta">2 minutes ago · jules-ai</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-col"><div class="tl-dot" style="background:#6366f1;box-shadow:0 0 6px rgba(99,102,241,0.6)"></div><div class="tl-line"></div></div>
+            <div class="tl-body"><div class="tl-title">Pushed 3 commits to feature/glassmorphism <span class="tl-tag tag-commit">Commit</span></div><div class="tl-meta">14 minutes ago · christian-wu</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-col"><div class="tl-dot" style="background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,0.6)"></div><div class="tl-line"></div></div>
+            <div class="tl-body"><div class="tl-title">Code review requested on PR #43 <span class="tl-tag tag-review">Review</span></div><div class="tl-meta">1 hour ago · gemini-ai</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-col"><div class="tl-dot" style="background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.6)"></div><div class="tl-line"></div></div>
+            <div class="tl-body"><div class="tl-title">Deployed to staging — v2.0.3 <span class="tl-tag tag-deploy">Deploy</span></div><div class="tl-meta">2 hours ago · CI/CD Pipeline</div></div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot-col"><div class="tl-dot" style="background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6)"></div></div>
+            <div class="tl-body"><div class="tl-title">High-risk change detected in auth module <span class="tl-tag tag-alert">Alert</span></div><div class="tl-meta">3 hours ago · GitNexus analysis</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="section-header"><span class="section-title">AI Agents Status</span><span class="section-link">Manage</span></div>
+        <div class="agent-list">
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:rgba(99,102,241,0.2);color:#a5b4fc">PM</div>
+            <div class="agent-info"><div class="agent-name">Claude · PM Agent</div><div class="agent-task">Generating task breakdown for sprint #14</div></div>
+            <div class="agent-status"><div class="dot dot-green"></div>Active</div>
+          </div>
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:rgba(16,185,129,0.2);color:#6ee7b7">UI</div>
+            <div class="agent-info"><div class="agent-name">Gemini · UI Agent</div><div class="agent-task">Extracting design tokens from Figma #flow-b</div></div>
+            <div class="agent-status"><div class="dot dot-green"></div>Active</div>
+          </div>
+          <div class="agent-row">
+            <div class="agent-avatar" style="background:rgba(245,158,11,0.2);color:#fcd34d">Co</div>
+            <div class="agent-info"><div class="agent-name">Jules · Code Agent</div><div class="agent-task">Awaiting PR #43 review approval...</div></div>
+            <div class="agent-status"><div class="dot dot-amber"></div>Waiting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-actions">
+      <div class="quick-actions-title">Quick Actions</div>
+      <div class="qa-grid">
+        <div class="qa-btn"><div class="qa-icon" style="background:rgba(99,102,241,0.2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="#a5b4fc"><path d="M8 2a.5.5 0 01.5.5v5h5a.5.5 0 010 1h-5v5a.5.5 0 01-1 0v-5h-5a.5.5 0 010-1h5v-5A.5.5 0 018 2z"/></svg></div><span class="qa-label">New Task</span></div>
+        <div class="qa-btn"><div class="qa-icon" style="background:rgba(16,185,129,0.2)"><svg width="16" height="16" viewBox="0 0 16 16" fill="#6ee7b7"><path d="M8 15A7 7 0 118 1a7 7 0 010 14zm0 1A8 8 0 108 0a8 8 0 000 16z"/><path d="M10.97 4.97a.235.235 0 00-.02.022L7.477 9.417 5.384 7.323a.75.75 0 00-1.06 1.06L6.97 11.03a.75.75 0 001.079-.02l3.992-4.99a.75.75 0 00-1.071-1.05z"/></svg></div><span class="qa-label">Run Analysis</span></div>
+        <div class="qa-btn"><div class="qa-icon" style="background:rgba(99,102,241,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="#a5b4fc"><path d="M0 4a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H2a2 2 0 01-2-2V4zm1 0v8a1 1 0 001 1h12a1 1 0 001-1V4a1 1 0 00-1-1H2a1 1 0 00-1 1z"/></svg></div><span class="qa-label">View Graph</span></div>
+        <div class="qa-btn"><div class="qa-icon" style="background:rgba(245,158,11,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="#fcd34d"><path d="M.5 9.9a.5.5 0 01.5.5v2.5a1 1 0 001 1h12a1 1 0 001-1v-2.5a.5.5 0 011 0v2.5a2 2 0 01-2 2H2a2 2 0 01-2-2v-2.5a.5.5 0 01.5-.5z"/><path d="M7.646 11.854a.5.5 0 00.708 0l3-3a.5.5 0 00-.708-.708L8.5 10.293V1.5a.5.5 0 00-1 0v8.793L5.354 8.146a.5.5 0 10-.708.708l3 3z"/></svg></div><span class="qa-label">Export Report</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

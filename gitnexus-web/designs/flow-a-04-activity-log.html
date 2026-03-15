@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitNexus AI Hub — Activity Log</title>
+<style>
+  /* ─── CSS Variables ─────────────────────────────────────────── */
+  :root {
+    --bg:          #0a0e1a;
+    --panel:       #1a1f2e;
+    --card:        #141928;
+    --border:      #2a3147;
+    --border-dim:  #1e2538;
+
+    --teal:        #00d4aa;
+    --teal-dim:    rgba(0, 212, 170, 0.12);
+    --purple:      #7c3aed;
+    --purple-dim:  rgba(124, 58, 237, 0.15);
+    --amber:       #f59e0b;
+    --amber-dim:   rgba(245, 158, 11, 0.15);
+    --red:         #ef4444;
+    --red-dim:     rgba(239, 68, 68, 0.15);
+    --green:       #4ade80;
+    --green-dim:   rgba(74, 222, 128, 0.12);
+
+    --text-primary:   #e2e8f0;
+    --text-secondary: #8892a4;
+    --text-muted:     #4a5568;
+
+    --sidebar-w: 64px;
+    --topbar-h:  52px;
+    --toolbar-h: 52px;
+
+    --font-ui:   "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+  }
+
+  /* ─── Reset ─────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; width: 100%; overflow: hidden; }
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.5;
+    min-width: 1280px;
+  }
+  svg { display: block; }
+  button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+  /* ─── App Shell ──────────────────────────────────────────────── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-rows: var(--topbar-h) 1fr;
+    height: 100vh;
+  }
+
+  /* ─── Sidebar ────────────────────────────────────────────────── */
+  .sidebar {
+    grid-row: 1 / 3;
+    grid-column: 1;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 4px;
+    z-index: 20;
+  }
+  .sidebar-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--teal), var(--purple));
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo svg { width: 20px; height: 20px; }
+  .sidebar-divider { width: 32px; height: 1px; background: var(--border); margin: 6px 0; }
+  .nav-item {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    transition: background 0.15s, color 0.15s;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--panel); color: var(--text-secondary); }
+  .nav-item.active { background: var(--teal-dim); color: var(--teal); }
+  .nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: -1px; top: 50%;
+    transform: translateY(-50%);
+    width: 3px; height: 20px;
+    background: var(--teal);
+    border-radius: 0 2px 2px 0;
+  }
+  .nav-item svg { width: 18px; height: 18px; }
+  .sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #00d4aa);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.3px;
+  }
+
+  /* ─── Top Bar ────────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 2; grid-row: 1;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px; gap: 16px;
+    z-index: 10;
+  }
+  .topbar-title { font-size: 14px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.2px; }
+  .topbar-badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 8px;
+    background: var(--teal-dim);
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 20px;
+    font-size: 11px; color: var(--teal); font-weight: 500;
+  }
+  .topbar-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--teal); border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.8); }
+  }
+  .topbar-spacer { flex: 1; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .topbar-btn {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    transition: background 0.15s, color 0.15s;
+  }
+  .topbar-btn:hover { background: var(--panel); color: var(--text-primary); }
+  .topbar-btn svg { width: 16px; height: 16px; }
+
+  /* ─── Main Content ───────────────────────────────────────────── */
+  .main-content {
+    grid-column: 2; grid-row: 2;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ─── Toolbar ────────────────────────────────────────────────── */
+  .toolbar {
+    height: var(--toolbar-h);
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px; gap: 12px;
+    flex-shrink: 0;
+  }
+  .search-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 6px 12px;
+    width: 300px;
+    transition: border-color 0.15s;
+  }
+  .search-bar:focus-within { border-color: var(--teal); }
+  .search-bar svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+  .search-bar input {
+    background: none; border: none; outline: none;
+    color: var(--text-primary); font-size: 12px;
+    font-family: var(--font-ui); width: 100%;
+  }
+  .search-bar input::placeholder { color: var(--text-muted); }
+  .search-kbd {
+    padding: 1px 5px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 10px; color: var(--text-muted);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .filter-chips { display: flex; align-items: center; gap: 6px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--text-muted); color: var(--text-primary); }
+  .chip.active { background: var(--teal-dim); border-color: rgba(0,212,170,0.3); color: var(--teal); }
+  .chip.purple.active { background: var(--purple-dim); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+  .chip.amber.active  { background: var(--amber-dim);  border-color: rgba(245,158,11,0.3);  color: var(--amber); }
+  .toolbar-spacer { flex: 1; }
+  .date-picker {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 12px; color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .date-picker:hover { border-color: var(--text-muted); color: var(--text-primary); }
+  .date-picker svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ─── Content Body ───────────────────────────────────────────── */
+  .content-body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 70fr 30fr;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ─── Timeline Feed ──────────────────────────────────────────── */
+  .timeline-panel {
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .timeline-header {
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border-dim);
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  .timeline-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .timeline-count {
+    padding: 2px 8px;
+    background: var(--card);
+    border: 1px solid var(--border-dim);
+    border-radius: 20px;
+    font-size: 11px; color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-left: auto;
+  }
+  .timeline-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 20px;
+  }
+  .timeline-scroll::-webkit-scrollbar { width: 4px; }
+  .timeline-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Timeline track */
+  .timeline-track {
+    position: relative;
+    padding-left: 28px;
+    padding-top: 20px;
+  }
+  .timeline-track::before {
+    content: "";
+    position: absolute;
+    left: 7px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--border) 40px, var(--border) calc(100% - 40px), transparent);
+  }
+
+  /* Entry */
+  .entry {
+    position: relative;
+    margin-bottom: 0;
+    padding-bottom: 18px;
+  }
+  .entry:last-child { padding-bottom: 0; }
+
+  /* Dot marker */
+  .entry-dot {
+    position: absolute;
+    left: -24px;
+    top: 14px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    flex-shrink: 0;
+  }
+  .entry-dot.purple { background: var(--purple); box-shadow: 0 0 6px rgba(124,58,237,0.5); }
+  .entry-dot.teal   { background: var(--teal);   box-shadow: 0 0 6px rgba(0,212,170,0.5); }
+  .entry-dot.amber  { background: var(--amber);  box-shadow: 0 0 6px rgba(245,158,11,0.5); }
+  .entry-dot.red    { background: var(--red);    box-shadow: 0 0 6px rgba(239,68,68,0.5); }
+  .entry-dot.green  { background: var(--green);  box-shadow: 0 0 6px rgba(74,222,128,0.5); }
+
+  /* Entry card */
+  .entry-card {
+    background: var(--card);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .entry-card:hover { border-color: var(--border); }
+
+  .entry-header {
+    display: flex; align-items: center;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .entry-type-badge {
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .badge-git    { background: var(--purple-dim); color: #a78bfa; border: 1px solid rgba(124,58,237,0.25); }
+  .badge-mcp    { background: var(--teal-dim);   color: var(--teal); border: 1px solid rgba(0,212,170,0.25); }
+  .badge-task   { background: var(--amber-dim);  color: var(--amber); border: 1px solid rgba(245,158,11,0.25); }
+
+  .entry-summary {
+    flex: 1;
+    font-size: 12px; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .entry-time {
+    font-size: 11px; color: var(--text-muted);
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .entry-expand {
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .entry-expand:hover { background: var(--panel); color: var(--text-secondary); }
+  .entry-expand svg { width: 12px; height: 12px; }
+
+  .entry-body {
+    padding: 0 14px 12px;
+    border-top: 1px solid var(--border-dim);
+    background: rgba(0,0,0,0.15);
+  }
+  .entry-body-inner {
+    padding-top: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  /* Metadata rows */
+  .meta-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px;
+  }
+  .meta-label {
+    color: var(--text-muted);
+    min-width: 72px;
+    font-size: 11px;
+  }
+  .meta-value { color: var(--text-secondary); }
+  .meta-mono { font-family: var(--font-mono); }
+  .meta-value.primary { color: var(--text-primary); }
+
+  /* Code block */
+  .code-block {
+    background: #080c18;
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #a8b5cc;
+    line-height: 1.6;
+    margin-top: 4px;
+    overflow-x: auto;
+  }
+  .code-key   { color: #a78bfa; }
+  .code-str   { color: #86efac; }
+  .code-num   { color: #fb923c; }
+  .code-arrow { color: var(--teal); }
+
+  /* Pills */
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+  }
+  .pill-hash   { background: rgba(124,58,237,0.15); color: #a78bfa; font-family: var(--font-mono); border: 1px solid rgba(124,58,237,0.2); }
+  .pill-author { background: var(--card); color: var(--text-secondary); border: 1px solid var(--border-dim); font-size: 10px; }
+  .pill-ai     { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,212,170,0.2); font-size: 10px; font-weight: 600; }
+  .pill-status-from { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2);  font-size: 11px; }
+  .pill-status-to   { background: rgba(245,158,11,0.12); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); font-size: 11px; }
+  .pill-status-done { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(0,212,170,0.2); font-size: 11px; }
+  .pill-task   { background: var(--purple-dim); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); font-family: var(--font-mono); font-size: 11px; }
+
+  .status-arrow { color: var(--text-muted); font-size: 11px; }
+
+  .file-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .file-chip {
+    padding: 2px 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+
+  /* Result tag */
+  .result-ok  { color: #4ade80; font-family: var(--font-mono); font-size: 11px; }
+  .result-err { color: var(--red); font-family: var(--font-mono); font-size: 11px; }
+
+  /* ─── Stats Sidebar ──────────────────────────────────────────── */
+  .stats-sidebar {
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    overflow-y: auto; overflow-x: hidden;
+  }
+  .stats-sidebar::-webkit-scrollbar { width: 4px; }
+  .stats-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .stats-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-dim);
+  }
+  .stats-section-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  /* Today's counts */
+  .counts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .count-card {
+    background: var(--card);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+  }
+  .count-value {
+    font-size: 26px; font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1;
+  }
+  .count-value.purple { color: #a78bfa; }
+  .count-value.teal   { color: var(--teal); }
+  .count-value.amber  { color: var(--amber); }
+  .count-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+  .count-trend { font-size: 10px; margin-top: 4px; }
+  .trend-up   { color: #4ade80; }
+  .trend-down { color: var(--red); }
+  .count-wide {
+    grid-column: 1 / -1;
+    background: var(--card);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* Donut chart (CSS conic-gradient) */
+  .donut-container {
+    display: flex; align-items: center; gap: 16px;
+    margin-top: 4px;
+  }
+  .donut {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: conic-gradient(
+      var(--teal)   0% 38%,
+      var(--purple) 38% 62%,
+      var(--amber)  62% 79%,
+      #ef4444       79% 91%,
+      #3a4460       91% 100%
+    );
+    position: relative;
+    flex-shrink: 0;
+  }
+  .donut::after {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    background: var(--panel);
+    border-radius: 50%;
+  }
+  .donut-legend { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .donut-row { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+  .donut-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .donut-name { color: var(--text-secondary); font-family: var(--font-mono); flex: 1; font-size: 10.5px; }
+  .donut-pct  { color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); }
+
+  /* Contributors */
+  .contributors-list { display: flex; flex-direction: column; gap: 8px; }
+  .contributor-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: var(--card);
+    border: 1px solid var(--border-dim);
+    border-radius: var(--radius-md);
+  }
+  .contrib-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .contrib-name { font-size: 12px; color: var(--text-primary); flex: 1; }
+  .contrib-count { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+  .badge-role {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .badge-ai-jules  { background: var(--purple-dim); color: #a78bfa; border: 1px solid rgba(124,58,237,0.25); }
+  .badge-ai-claude { background: var(--teal-dim);   color: var(--teal);   border: 1px solid rgba(0,212,170,0.25); }
+  .badge-human     { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border-dim); }
+
+  /* Refresh button */
+  .btn-refresh {
+    width: 100%;
+    padding: 8px 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 500; font-size: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: border-color 0.15s, color 0.15s;
+    font-family: var(--font-ui);
+    margin-top: 12px;
+  }
+  .btn-refresh:hover { border-color: var(--teal); color: var(--teal); }
+  .btn-refresh svg { width: 13px; height: 13px; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ══════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 20 20" fill="none">
+        <path d="M10 2L3 6v8l7 4 7-4V6L10 2z" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M10 2v12M3 6l7 4 7-4" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="nav-item" title="Dashboard">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="2" width="7" height="7" rx="1.5"/>
+        <rect x="11" y="2" width="7" height="7" rx="1.5"/>
+        <rect x="2" y="11" width="7" height="7" rx="1.5"/>
+        <rect x="11" y="11" width="7" height="7" rx="1.5"/>
+      </svg>
+    </div>
+    <div class="nav-item" title="Tasks">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M4 6h12M4 10h12M4 14h8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="nav-item" title="Impact Graph">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="10" cy="10" r="3"/>
+        <circle cx="3.5" cy="5" r="2"/><circle cx="16.5" cy="5" r="2"/>
+        <circle cx="3.5" cy="15" r="2"/><circle cx="16.5" cy="15" r="2"/>
+        <path d="M6 7l2.5 1.5M14 7l-2.5 1.5M6 13l2.5-1.5M14 13l-2.5-1.5"/>
+      </svg>
+    </div>
+    <div class="nav-item active" title="Activity Log">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 5h14M3 9h10M3 13h12M3 17h7" stroke-linecap="round"/>
+        <circle cx="16" cy="15" r="2.5" stroke="currentColor"/>
+        <path d="M16 13.5v1.2l.8.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="nav-item" title="Settings">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="10" cy="10" r="3"/>
+        <path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4.1 4.1l1.4 1.4M14.5 14.5l1.4 1.4M4.1 15.9l1.4-1.4M14.5 5.5l1.4-1.4"/>
+      </svg>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="avatar">CW</div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════
+       TOP BAR
+  ══════════════════════════════════ -->
+  <header class="topbar">
+    <span class="topbar-title">GitNexus AI Hub</span>
+    <div class="topbar-badge">
+      <span class="dot"></span>
+      MCP Active
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" title="Notifications">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M10 2a6 6 0 00-6 6c0 3.5-1.5 5-1.5 5h15S16 11.5 16 8a6 6 0 00-6-6z"/>
+          <path d="M8.5 17a1.5 1.5 0 003 0"/>
+        </svg>
+      </button>
+      <button class="topbar-btn" title="Command Palette">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="3" y="3" width="14" height="14" rx="2"/>
+          <path d="M7 8l-2 2 2 2M13 8l2 2-2 2M11 6l-2 8"/>
+        </svg>
+      </button>
+      <button class="topbar-btn" title="Help">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="10" cy="10" r="8"/>
+          <path d="M7.5 7.5a2.5 2.5 0 015 0c0 1.5-2.5 2-2.5 3.5"/>
+          <circle cx="10" cy="14.5" r=".8" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════
+       MAIN CONTENT
+  ══════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-bar">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="8.5" cy="8.5" r="5.5"/>
+          <path d="M14 14l3.5 3.5"/>
+        </svg>
+        <input type="text" placeholder="Search commits, tasks, MCP calls..." />
+        <span class="search-kbd">⌘F</span>
+      </div>
+      <div class="filter-chips">
+        <button class="chip active">All</button>
+        <button class="chip purple">Git</button>
+        <button class="chip">MCP</button>
+        <button class="chip amber">Tasks</button>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <div class="date-picker">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="3" y="4" width="14" height="13" rx="2"/>
+          <path d="M3 8h14M7 2v3M13 2v3"/>
+        </svg>
+        Mar 14 – Mar 15, 2026
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10" style="margin-left:2px;">
+          <path d="M2 4l4 4 4-4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Content Body -->
+    <div class="content-body">
+
+      <!-- ── Timeline Feed ── -->
+      <div class="timeline-panel">
+        <div class="timeline-header">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="var(--text-secondary)" stroke-width="1.7">
+            <circle cx="10" cy="10" r="8"/>
+            <path d="M10 6v4l2.5 2.5" stroke-linecap="round"/>
+          </svg>
+          <span class="timeline-title">Activity Timeline</span>
+          <span class="timeline-count">62 events today</span>
+        </div>
+
+        <div class="timeline-scroll">
+          <div class="timeline-track">
+
+            <!-- ── Entry 1: Git commit ── -->
+            <div class="entry">
+              <div class="entry-dot purple"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-git">GIT</span>
+                  <span class="entry-summary">feat(auth): add refresh token rotation with sliding window expiry</span>
+                  <span class="entry-time">2m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Commit</span>
+                      <span class="pill pill-hash">a3f8c2d</span>
+                      <span class="pill pill-author">main</span>
+                      <span class="pill pill-ai badge-ai-jules">AI:Jules</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Files</span>
+                      <div class="file-chips">
+                        <span class="file-chip">auth/tokenService.ts</span>
+                        <span class="file-chip">auth/refreshHandler.ts</span>
+                        <span class="file-chip">middleware/session.ts</span>
+                        <span class="file-chip">+2 more</span>
+                      </div>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Changes</span>
+                      <span class="meta-value" style="color:#4ade80;">+187</span>
+                      <span class="meta-value" style="color:var(--red); margin-left:6px;">−34</span>
+                      <span class="meta-value meta-mono" style="margin-left:10px;">5 files changed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 2: MCP call ── -->
+            <div class="entry">
+              <div class="entry-dot teal"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-mcp">MCP</span>
+                  <span class="entry-summary">gitnexus_impact · validateUser · HIGH risk · 14 nodes</span>
+                  <span class="entry-time">4m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Tool</span>
+                      <span class="meta-value meta-mono" style="color:var(--teal);">gitnexus_impact</span>
+                    </div>
+                    <div class="code-block">
+<span class="code-key">target:</span> <span class="code-str">"validateUser"</span>,
+<span class="code-key">direction:</span> <span class="code-str">"upstream"</span>
+<span class="code-arrow">→</span> <span style="color:#ef4444; font-weight:600;">HIGH</span> risk · <span class="code-num">14</span> nodes · <span class="code-num">3</span> direct callers · <span class="code-num">142ms</span></div>
+                    <div class="meta-row">
+                      <span class="meta-label">Elapsed</span>
+                      <span class="meta-value meta-mono">142ms</span>
+                      <span style="margin-left:12px;" class="meta-label">Agent</span>
+                      <span class="pill pill-ai badge-ai-claude">AI:Claude</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 3: Task update ── -->
+            <div class="entry">
+              <div class="entry-dot amber"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-task">TASK</span>
+                  <span class="entry-summary">TASK-007 status changed: In Review → In Progress</span>
+                  <span class="entry-time">11m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Task</span>
+                      <span class="pill pill-task">TASK-007</span>
+                      <span class="meta-value" style="margin-left:8px; font-size:11px;">Refactor auth token pipeline</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Status</span>
+                      <span class="pill pill-status-from">In Review</span>
+                      <span class="status-arrow">→</span>
+                      <span class="pill pill-status-to">In Progress</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Reason</span>
+                      <span class="meta-value">HIGH impact blast radius requires broader scope</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 4: Git commit ── -->
+            <div class="entry">
+              <div class="entry-dot purple"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-git">GIT</span>
+                  <span class="entry-summary">fix(session): resolve race condition in concurrent token refresh</span>
+                  <span class="entry-time">28m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Commit</span>
+                      <span class="pill pill-hash">f71e904</span>
+                      <span class="pill pill-author">feat/auth-refactor</span>
+                      <span class="pill pill-ai badge-ai-jules">AI:Jules</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Files</span>
+                      <div class="file-chips">
+                        <span class="file-chip">session/manager.ts</span>
+                        <span class="file-chip">utils/mutex.ts</span>
+                        <span class="file-chip">tests/session.test.ts</span>
+                      </div>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Changes</span>
+                      <span class="meta-value" style="color:#4ade80;">+64</span>
+                      <span class="meta-value" style="color:var(--red); margin-left:6px;">−19</span>
+                      <span class="meta-value meta-mono" style="margin-left:10px;">3 files changed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 5: MCP call ── -->
+            <div class="entry">
+              <div class="entry-dot teal"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-mcp">MCP</span>
+                  <span class="entry-summary">gitnexus_query · "auth token refresh" · 6 results</span>
+                  <span class="entry-time">34m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Tool</span>
+                      <span class="meta-value meta-mono" style="color:var(--teal);">gitnexus_query</span>
+                    </div>
+                    <div class="code-block">
+<span class="code-key">query:</span> <span class="code-str">"auth token refresh"</span>
+<span class="code-arrow">→</span> <span class="code-num">6</span> results · tokenRefreshService, refreshHandler, sessionManager, jwtRotator, <span style="color:var(--text-muted);">+2</span></div>
+                    <div class="meta-row">
+                      <span class="meta-label">Elapsed</span>
+                      <span class="meta-value meta-mono">38ms</span>
+                      <span style="margin-left:12px;" class="meta-label">Agent</span>
+                      <span class="pill pill-ai badge-ai-claude">AI:Claude</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 6: Task update ── -->
+            <div class="entry">
+              <div class="entry-dot amber"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-task">TASK</span>
+                  <span class="entry-summary">TASK-012 status changed: Todo → Done</span>
+                  <span class="entry-time">1h ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Task</span>
+                      <span class="pill pill-task">TASK-012</span>
+                      <span class="meta-value" style="margin-left:8px; font-size:11px;">Add rate limiter to /api/login endpoint</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Status</span>
+                      <span class="pill pill-status-from">Todo</span>
+                      <span class="status-arrow">→</span>
+                      <span class="pill pill-status-done">Done</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Assigned</span>
+                      <span class="pill pill-ai badge-ai-jules">AI:Jules</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 7: Git commit ── -->
+            <div class="entry">
+              <div class="entry-dot purple"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-git">GIT</span>
+                  <span class="entry-summary">chore: update test fixtures for auth module coverage</span>
+                  <span class="entry-time">1h 22m ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Commit</span>
+                      <span class="pill pill-hash">c28b3e1</span>
+                      <span class="pill pill-author">feat/auth-refactor</span>
+                      <span style="padding:2px 6px; background:rgba(255,255,255,0.05); border:1px solid var(--border-dim); border-radius:3px; font-size:10px; color:var(--text-muted);">CW</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Files</span>
+                      <div class="file-chips">
+                        <span class="file-chip">tests/__fixtures__/auth.ts</span>
+                        <span class="file-chip">tests/auth.spec.ts</span>
+                      </div>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Changes</span>
+                      <span class="meta-value" style="color:#4ade80;">+112</span>
+                      <span class="meta-value" style="color:var(--red); margin-left:6px;">−8</span>
+                      <span class="meta-value meta-mono" style="margin-left:10px;">2 files changed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 8: MCP call ── -->
+            <div class="entry">
+              <div class="entry-dot teal"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-mcp">MCP</span>
+                  <span class="entry-summary">gitnexus_rename · tokenHelper → tokenService · dry_run preview</span>
+                  <span class="entry-time">2h ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Tool</span>
+                      <span class="meta-value meta-mono" style="color:var(--teal);">gitnexus_rename</span>
+                    </div>
+                    <div class="code-block">
+<span class="code-key">symbol_name:</span> <span class="code-str">"tokenHelper"</span>,
+<span class="code-key">new_name:</span> <span class="code-str">"tokenService"</span>,
+<span class="code-key">dry_run:</span> <span style="color:#fb923c;">true</span>
+<span class="code-arrow">→</span> <span class="code-num">23</span> graph_edits · <span class="code-num">4</span> text_search edits (manual review needed)</div>
+                    <div class="meta-row">
+                      <span class="meta-label">Elapsed</span>
+                      <span class="meta-value meta-mono">67ms</span>
+                      <span style="margin-left:12px;" class="meta-label">Agent</span>
+                      <span class="pill pill-ai badge-ai-claude">AI:Claude</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Entry 9: Git commit ── -->
+            <div class="entry">
+              <div class="entry-dot purple"></div>
+              <div class="entry-card">
+                <div class="entry-header">
+                  <span class="entry-type-badge badge-git">GIT</span>
+                  <span class="entry-summary">refactor(middleware): extract auth validation into standalone module</span>
+                  <span class="entry-time">3h ago</span>
+                  <span class="entry-expand">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4l4 4 4-4"/></svg>
+                  </span>
+                </div>
+                <div class="entry-body">
+                  <div class="entry-body-inner">
+                    <div class="meta-row">
+                      <span class="meta-label">Commit</span>
+                      <span class="pill pill-hash">9d4a17f</span>
+                      <span class="pill pill-author">feat/auth-refactor</span>
+                      <span class="pill pill-ai badge-ai-jules">AI:Jules</span>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Files</span>
+                      <div class="file-chips">
+                        <span class="file-chip">middleware/auth/index.ts</span>
+                        <span class="file-chip">middleware/auth/validate.ts</span>
+                        <span class="file-chip">middleware/auth/types.ts</span>
+                        <span class="file-chip">+5 more</span>
+                      </div>
+                    </div>
+                    <div class="meta-row">
+                      <span class="meta-label">Changes</span>
+                      <span class="meta-value" style="color:#4ade80;">+243</span>
+                      <span class="meta-value" style="color:var(--red); margin-left:6px;">−198</span>
+                      <span class="meta-value meta-mono" style="margin-left:10px;">8 files changed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /timeline-track -->
+        </div><!-- /timeline-scroll -->
+      </div><!-- /timeline-panel -->
+
+      <!-- ── Stats Sidebar ── -->
+      <div class="stats-sidebar">
+
+        <!-- Today's Counts -->
+        <div class="stats-section">
+          <div class="stats-section-label">Today's Activity</div>
+          <div class="counts-grid">
+            <div class="count-card">
+              <div class="count-value purple">12</div>
+              <div class="count-label">Commits</div>
+              <div class="count-trend trend-up">↑ 4 vs yesterday</div>
+            </div>
+            <div class="count-card">
+              <div class="count-value teal">47</div>
+              <div class="count-label">MCP Calls</div>
+              <div class="count-trend trend-up">↑ 12 vs yesterday</div>
+            </div>
+            <div class="count-wide">
+              <div>
+                <div class="count-value amber" style="font-size:20px;">3</div>
+                <div class="count-label">Tasks Updated</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="count-trend" style="color:var(--text-muted); font-size:10px;">1 Done · 1 In Progress</div>
+                <div class="count-trend" style="color:var(--text-muted); font-size:10px;">1 Blocked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top MCP Tools -->
+        <div class="stats-section">
+          <div class="stats-section-label">Top MCP Tools</div>
+          <div class="donut-container">
+            <div class="donut"></div>
+            <div class="donut-legend">
+              <div class="donut-row">
+                <div class="donut-dot" style="background:var(--teal);"></div>
+                <span class="donut-name">gitnexus_query</span>
+                <span class="donut-pct">38%</span>
+              </div>
+              <div class="donut-row">
+                <div class="donut-dot" style="background:var(--purple);"></div>
+                <span class="donut-name">gitnexus_context</span>
+                <span class="donut-pct">24%</span>
+              </div>
+              <div class="donut-row">
+                <div class="donut-dot" style="background:var(--amber);"></div>
+                <span class="donut-name">gitnexus_impact</span>
+                <span class="donut-pct">17%</span>
+              </div>
+              <div class="donut-row">
+                <div class="donut-dot" style="background:var(--red);"></div>
+                <span class="donut-name">gitnexus_rename</span>
+                <span class="donut-pct">12%</span>
+              </div>
+              <div class="donut-row">
+                <div class="donut-dot" style="background:#3a4460;"></div>
+                <span class="donut-name">other</span>
+                <span class="donut-pct">9%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Contributors -->
+        <div class="stats-section">
+          <div class="stats-section-label">Contributors</div>
+          <div class="contributors-list">
+
+            <div class="contributor-row">
+              <div class="contrib-avatar" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">J</div>
+              <span class="contrib-name">Jules</span>
+              <span class="badge-role badge-ai-jules">AI Agent</span>
+              <span class="contrib-count">24 commits</span>
+            </div>
+
+            <div class="contributor-row">
+              <div class="contrib-avatar" style="background:linear-gradient(135deg,#00d4aa,#0ea5e9);">C</div>
+              <span class="contrib-name">Claude</span>
+              <span class="badge-role badge-ai-claude">AI Agent</span>
+              <span class="contrib-count">47 calls</span>
+            </div>
+
+            <div class="contributor-row">
+              <div class="contrib-avatar" style="background:linear-gradient(135deg,#7c3aed,#00d4aa);">CW</div>
+              <span class="contrib-name">Christian Wu</span>
+              <span class="badge-role badge-human">Human</span>
+              <span class="contrib-count">8 commits</span>
+            </div>
+
+          </div>
+
+          <button class="btn-refresh">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M4 10a6 6 0 1112 0" stroke-linecap="round"/>
+              <path d="M4 10l-2-2 2-2"/>
+            </svg>
+            Refresh Feed
+          </button>
+        </div>
+
+        <!-- Index Status -->
+        <div class="stats-section" style="border-bottom:none;">
+          <div class="stats-section-label">Index Status</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:11px; color:var(--text-secondary);">Symbols</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-primary);">1,912</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:11px; color:var(--text-secondary);">Relationships</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-primary);">4,171</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:11px; color:var(--text-secondary);">Exec Flows</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-primary);">5</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:11px; color:var(--text-secondary);">Status</span>
+              <span style="font-size:11px; color:var(--teal); font-weight:600;">● fresh</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:11px; color:var(--text-secondary);">Last analyzed</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">2m ago</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /stats-sidebar -->
+    </div><!-- /content-body -->
+  </main>
+
+</div><!-- /app-shell -->
+
+</body>
+</html>
