@@ -103,6 +103,7 @@ export type EdgeType =
   | 'USES'
   | 'HAS_METHOD'
   | 'DECORATES'
+  | 'REFERENCES'
   | 'MEMBER_OF'
   | 'STEP_IN_PROCESS';
 
@@ -118,6 +119,7 @@ export const ALL_EDGE_TYPES: EdgeType[] = [
   'USES',
   'HAS_METHOD',
   'DECORATES',
+  'REFERENCES',
   'MEMBER_OF',
   'STEP_IN_PROCESS',
 ];
@@ -135,6 +137,7 @@ export const DEFAULT_VISIBLE_EDGES: EdgeType[] = [
   'USES',
   'HAS_METHOD',
   'DECORATES',
+  'REFERENCES',
 ];
 
 // Edge display info for UI — each type has a distinct color
@@ -155,6 +158,8 @@ export const EDGE_INFO: Record<EdgeType, { color: string; label: string }> = {
   USES:             { color: '#8b5cf6', label: 'Uses' },
   HAS_METHOD:       { color: '#0ea5e9', label: 'Has Method' },
   DECORATES:        { color: '#eab308', label: 'Decorates' },
+  // Document cross-references
+  REFERENCES:       { color: '#14b8a6', label: 'References' },
   // Graph structure
   MEMBER_OF:        { color: '#64748b', label: 'Member Of' },
   STEP_IN_PROCESS:  { color: '#ec4899', label: 'Step In Process' },

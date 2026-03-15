@@ -55,6 +55,7 @@ export type RelationshipType =
   | 'IMPLEMENTS'
   | 'EXTENDS'
   | 'HAS_METHOD'
+  | 'REFERENCES'
   | 'MEMBER_OF'
   | 'STEP_IN_PROCESS'
 
