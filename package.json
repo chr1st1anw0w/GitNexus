@@ -1,0 +1,11 @@
+{
+  "name": "gitnexus-monorepo",
+  "private": true,
+  "workspaces": [
+    "gitnexus",
+    "gitnexus-web"
+  ],
+  "scripts": {
+    "gitnexus": "gitnexus"
+  }
+}
