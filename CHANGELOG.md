@@ -2,6 +2,12 @@
 
 All notable changes to GitNexus will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- **2026-03-15 20:00:15 CST | Augment Agent (GPT-5.4)** — Added a GitNexus Web interactive demo documentation page and converted `showcase.html` into a functional graph interaction showcase with mock data, hover preview, click-to-inspector, right-click context menu, sidebar pinning, field toggles, and live-data empty-state messaging.
+
 ## [1.4.0] - 2026-03-13
 
 ### Added

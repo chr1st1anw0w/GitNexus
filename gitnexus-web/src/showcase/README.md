@@ -1,6 +1,6 @@
-# 🎭 GitNexus AI Hub Interactive Showcase
+# 🎭 GitNexus Web Interactive Demo
 
-> **全功能元件展示模式** — 無需登入或後端連線，完整體驗所有 UI 設計與互動功能
+> **Graph explorer onboarding showcase** — 無需登入、無需後端、無需匯入 repository，即可直接體驗 GitNexus Web 的核心互動模型
 
 ---
 
@@ -27,18 +27,20 @@ pnpm preview:showcase
 
 ---
 
-## 📦 包含的元件
+## 📦 本次展示重點
 
-### ✅ 已完成元件
+### ✅ 可直接操作的功能
 
-| 元件 | 功能 | 互動性 | 狀態 |
-|------|------|--------|------|
-| **Dashboard** | 儀表板總覽 | 🟢 完整 | ✅ 可展示 |
-| **TaskBoard** | Kanban 看板 | 🟡 部分* | ✅ 可展示 |
-| **TaskDetail** | 任務詳情 | 🟢 完整 | ✅ 可展示 |
-| **ActivityImpact** | 影響分析 | 🟡 部分* | ✅ 可展示 |
-
-> *🟡 部分互動：拖拽功能需安裝 `@dnd-kit`，圖表渲染需 `cytoscape`
+| 功能 | 說明 |
+|------|------|
+| **Node hover preview** | 滑過節點可看到 summary / tag / risk 預覽 |
+| **Click → inspector** | 點擊節點可開啟右側 inspector sidebar |
+| **Right-click context menu** | 右鍵可直接開啟動作選單 |
+| **Sidebar pin / unpin** | 可固定檢視內容，不因 deselect 而消失 |
+| **Preview mode toggle** | 可開關 hover preview |
+| **Field visibility toggle** | 可切換 tags / risk / relations / metadata |
+| **Mock impact analysis** | 使用 curated sample graph 顯示 caller / callee / process / risk |
+| **Demo / Live mode distinction** | 可切換為未接資料的 live empty state |
 
 ---
 
@@ -89,12 +91,12 @@ pnpm preview:showcase
 
 | 功能 | 狀態 | 說明 |
 |------|------|------|
-| 任務卡片點擊 | ✅ 可用 | 彈出詳情 Modal |
-| 篩選側邊欄 | ✅ 可用 | 視覺回饋（資料篩選邏輯已備妥） |
-| 動作按鈕 | ✅ 可用 | 顯示 toast 通知或模擬 API 回應 |
-| Tab 切換 | ✅ 可用 | Impact/Activity/Settings 分頁 |
-| 拖拽看板 | ⏳ 需安裝 @dnd-kit | Phase 4 整合 |
-| 圖表渲染 | ⏳ 需安裝 cytoscape | Phase 4 整合 |
+| Node hover | ✅ 可用 | 顯示輕量 preview card |
+| Node click | ✅ 可用 | 開啟 inspector sidebar |
+| Right-click menu | ✅ 可用 | 執行 context actions |
+| Sidebar pinning | ✅ 可用 | 固定 inspector 內容 |
+| Impact highlight | ✅ 可用 | 顯示 mock blast radius |
+| Live-mode empty state | ✅ 可用 | 說明未登入 / 未匯入資料情境 |
 
 ### 3. 展示模式特點
 - 🎯 導覽面板：快速切換不同元件
@@ -111,13 +113,16 @@ gitnexus-web/
 ├── showcase.html              ← 獨立入口 HTML
 ├── src/showcase/
 │   ├── main.tsx              ← Showcase 模式入口
-│   ├── ShowcaseApp.tsx       ← 展示模式 App 容器
+│   ├── ShowcaseApp.tsx       ← demo page 入口容器
+│   ├── InteractiveGraphDemo.tsx ← 可互動 graph demo 頁面
+│   ├── demo-state.ts         ← demo reducer / state transitions
+│   ├── demo-state.test.ts    ← reducer tests
+│   ├── mock-graph-data.ts    ← mock graph / node narratives / impact data
 │   └── README.md             ← 本文件
-├── src/components/
-│   ├── TaskBoard.tsx         ← 看板元件（含 mock data）
-│   ├── TaskDetailModal.tsx   ← 詳情元件（含 mock data）
-│   ├── ActivityImpactView.tsx ← 影響分析（含 mock data）
-│   └── DashboardView.tsx     ← 儀表板（含 mock data）
+├── src/hooks/
+│   └── useSigma.ts           ← 重用的 graph interaction hook
+├── src/lib/
+│   └── graph-adapter.ts      ← 重用的 graphology adapter
 └── package.json              ← 新增 showcase 指令
 ```
 
@@ -126,7 +131,7 @@ gitnexus-web/
 ## 🎯 使用場景
 
 ### 1. 產品演示（Demo Day）
-**情境**：向投資人或客戶展示產品功能
+**情境**：向客戶、合作夥伴或投資人展示 GitNexus Web graph UX
 **優勢**：無需搭建完整環境，開箱即用
 
 ```bash
@@ -135,7 +140,7 @@ pnpm build:showcase
 ```
 
 ### 2. 設計審查（Design Review）
-**情境**：UI/UX 團隊評估設計實作
+**情境**：UI/UX 與前端共同審查 hover / click / right-click / sidebar 流程
 **優勢**：真實 React 元件，非靜態圖片
 
 ```bash
@@ -143,8 +148,8 @@ pnpm dev:showcase
 # 設計師可直接在瀏覽器檢視並提供回饋
 ```
 
-### 3. 使用者測試（User Testing）
-**情境**：觀察使用者與介面互動
+### 3. 空資料 onboarding（Empty-State Onboarding）
+**情境**：使用者尚未登入、尚未接後端、尚未匯入 repository
 **優勢**：完整互動功能，接近真實體驗
 
 ```bash
@@ -153,7 +158,7 @@ pnpm dev:showcase
 ```
 
 ### 4. 開發驗證（Feature Validation）
-**情境**：驗證元件功能與設計一致性
+**情境**：驗證 graph interaction 文案、資訊架構與狀態切換是否合理
 **優勢**：快速迭代，無需等待後端 API
 
 ```bash
@@ -208,36 +213,29 @@ export const SHOWCASE_TASKS = [
 
 ## 🔄 與主應用的區別
 
-| 項目 | 主應用 (App.tsx) | Showcase (ShowcaseApp.tsx) |
+| 項目 | 主應用 (App.tsx) | Demo Page (ShowcaseApp.tsx) |
 |------|-----------------|----------------------------|
-| 資料來源 | 後端 API (localhost:4747) | Mock 數據（硬編碼） |
+| 資料來源 | 後端 API / 匯入 graph | Mock graph + curated metadata |
 | 登入驗證 | ✅ 需要 | ❌ 不需要 |
 | 後端依賴 | ✅ 需要 | ❌ 不需要 |
-| 狀態管理 | Zustand + React Context | 僅 React State |
-| MCP 整合 | ✅ 真實 MCP 調用 | ❌ 模擬回應 |
-| 路由 | React Router (未來) | 簡單 state 切換 |
-| 適用場景 | 開發 & 生產環境 | 演示 & 測試環境 |
+| 狀態管理 | App context + worker | Local reducer + shared graph hook |
+| GitNexus query | ✅ 真實 | ❌ 模擬 impact / provenance |
+| 目的 | 真實探索與分析 | onboarding / demo / empty-state preview |
 
 ---
 
 ## 📝 待辦事項
 
-### Phase 1 (完成)
-- [x] 創建 ShowcaseApp 容器
-- [x] 導覽面板設計
-- [x] 整合現有元件（Dashboard, TaskBoard, TaskDetail, Impact）
-- [x] 程式碼檢視器 (可選)
+### 已完成
+- [x] 將展示頁改為可操作的 graph interaction demo
+- [x] 加入 demo / live-data-empty-state 模式切換
+- [x] 補上 mock graph、context menu、inspector、field toggles
+- [x] 加入 reducer 測試
 
-### Phase 2 (未來)
-- [ ] 加入拖拽互動（等 @dnd-kit 安裝後）
-- [ ] 整合 Cytoscape 圖表（等 cytoscape 安裝後）
-- [ ] 加入更多互動反饋（Toast 通知、Loading 狀態）
-- [ ] 響應式設計驗證（Mobile/Tablet）
-
-### Phase 3 (未來)
-- [ ] 錄製互動影片（用於文檔）
-- [ ] 建立線上 Demo 站點（Vercel/Netlify）
-- [ ] 多語系支援（英文/繁中切換）
+### 下一步
+- [ ] 串接真實 GitNexus graph payload
+- [ ] 補 component interaction tests（需 jsdom / Testing Library 類依賴）
+- [ ] 規劃 responsive layout 與對外 demo hosting
 
 ---
 
@@ -247,8 +245,7 @@ export const SHOWCASE_TASKS = [
 
 ---
 
-## 📞 聯絡
+## 📞 備註
 
-**開發者**: Claude (規劃 + 代碼) | Jules (測試 + 整合)
-**專案**: GitNexus AI Hub
+**用途**: GitNexus Web 對外展示 / onboarding / 空資料體驗
 **最後更新**: 2026-03-15

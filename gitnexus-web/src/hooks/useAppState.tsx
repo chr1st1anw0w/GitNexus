@@ -13,6 +13,9 @@ import type { AgentMessage } from '../core/llm/agent';
 import { DEFAULT_VISIBLE_EDGES, type EdgeType } from '../lib/constants';
 import type { RepoSummary, ConnectToServerResult } from '../services/server-connection';
 import { fetchRepos, connectToServer } from '../services/server-connection';
+import { Task, parseTasks, serializeTasks } from '../utils/taskUtil';
+import { fetchFileContent, writeFileContent } from '../services/backend';
+import { arrayMove } from '@dnd-kit/sortable';
 
 export type ViewMode = 'onboarding' | 'loading' | 'exploring' | 'hub';
 export type HubTab = 'dashboard' | 'tasks' | 'impact';
@@ -148,8 +151,18 @@ interface AppState {
   isSettingsPanelOpen: boolean;
   setSettingsPanelOpen: (open: boolean) => void;
   isAgentReady: boolean;
+
+  // Task Board state
+  tasks: Task[];
+  setTasks: (tasks: Task[]) => void;
+  fetchTasks: () => Promise<void>;
+  updateTaskStatus: (taskId: string, newStatus: Task['status']) => Promise<void>;
+  moveTask: (activeId: string, overId: string) => void;
+
   isAgentInitializing: boolean;
   agentError: string | null;
+  selectedTaskId: string | null;
+  setSelectedTaskId: (id: string | null) => void;
 
   // Chat state
   chatMessages: ChatMessage[];
@@ -242,6 +255,99 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [animatedNodes, setAnimatedNodes] = useState<Map<string, NodeAnimation>>(new Map());
   const animationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Progress
+  const [progress, setProgress] = useState<PipelineProgress | null>(null);
+
+  // Project info
+  const [projectName, setProjectName] = useState('New Project');
+  const [serverBaseUrl, setServerBaseUrl] = useState<string | null>(null);
+  const [availableRepos, setAvailableRepos] = useState<RepoSummary[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  // Embedding state
+  const [embeddingStatus, setEmbeddingStatus] = useState<EmbeddingStatus>('idle');
+  const [embeddingProgress, setEmbeddingProgress] = useState<EmbeddingProgress | null>(null);
+
+  // LLM/Agent state
+  const [llmSettings, setLLMSettings] = useState<LLMSettings>(loadSettings);
+  const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [isAgentReady, setIsAgentReady] = useState(false);
+  const [isAgentInitializing, setIsAgentInitializing] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [currentToolCalls, setCurrentToolCalls] = useState<ToolCallInfo[]>([]);
+
+  // Code References Panel state
+  const [codeReferences, setCodeReferences] = useState<CodeReference[]>([]);
+  const [isCodePanelOpen, setCodePanelOpen] = useState(false);
+  const [codeReferenceFocus, setCodeReferenceFocus] = useState<CodeReferenceFocus | null>(null);
+
+  // Fetch tasks from local TASK.md
+  const fetchTasks = useCallback(async () => {
+    if (!serverBaseUrl || !projectName) return;
+    try {
+      // Find the RepoSummary that matches projectName to get the repo name for API
+      const repo = availableRepos.find(r => r.name.toLowerCase().includes(projectName.toLowerCase())) || availableRepos[0];
+      if (!repo) return;
+
+      const content = await fetchFileContent(repo.name, 'TASK.md');
+      const parsed = parseTasks(content);
+      setTasks(parsed);
+    } catch (err) {
+      console.error('Failed to fetch tasks:', err);
+    }
+  }, [serverBaseUrl, projectName, availableRepos]);
+
+  // Update task status and persist to TASK.md
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: Task['status']) => {
+    setTasks(prev => {
+      const updated = prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t);
+      
+      // Persist to disk
+      if (serverBaseUrl && projectName) {
+        const repo = availableRepos.find(r => r.name.toLowerCase().includes(projectName.toLowerCase())) || availableRepos[0];
+        if (repo) {
+          const content = serializeTasks(updated);
+          writeFileContent(repo.name, 'TASK.md', content).catch(console.error);
+        }
+      }
+      
+      return updated;
+    });
+  }, [serverBaseUrl, projectName, availableRepos]);
+
+  // Handle DnD reordering
+  const moveTask = useCallback((activeId: string, overId: string) => {
+    setTasks((prev) => {
+      const oldIndex = prev.findIndex((t) => t.id === activeId);
+      const newIndex = prev.findIndex((t) => t.id === overId);
+      
+      const updated = arrayMove(prev, oldIndex, newIndex);
+      
+      // Persist reordering
+      if (serverBaseUrl && projectName) {
+        const repo = availableRepos.find(r => r.name.toLowerCase().includes(projectName.toLowerCase())) || availableRepos[0];
+        if (repo) {
+          const content = serializeTasks(updated);
+          writeFileContent(repo.name, 'TASK.md', content).catch(console.error);
+        }
+      }
+      
+      return updated;
+    });
+  }, [serverBaseUrl, projectName, availableRepos]);
+
+  // Fetch tasks when switching to hub tab
+  useEffect(() => {
+    if (viewMode === 'hub' && hubTab === 'tasks') {
+      fetchTasks();
+    }
+  }, [viewMode, hubTab, fetchTasks]);
+
   const triggerNodeAnimation = useCallback((nodeIds: string[], type: AnimationType) => {
     const now = Date.now();
     const duration = type === 'pulse' ? 2000 : type === 'ripple' ? 3000 : 4000;
@@ -277,36 +383,6 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Progress
-  const [progress, setProgress] = useState<PipelineProgress | null>(null);
-
-  // Project info
-  const [projectName, setProjectName] = useState<string>('');
-
-  // Multi-repo switching
-  const [serverBaseUrl, setServerBaseUrl] = useState<string | null>(null);
-  const [availableRepos, setAvailableRepos] = useState<RepoSummary[]>([]);
-
-  // Embedding state
-  const [embeddingStatus, setEmbeddingStatus] = useState<EmbeddingStatus>('idle');
-  const [embeddingProgress, setEmbeddingProgress] = useState<EmbeddingProgress | null>(null);
-
-  // LLM/Agent state
-  const [llmSettings, setLLMSettings] = useState<LLMSettings>(loadSettings);
-  const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
-  const [isAgentReady, setIsAgentReady] = useState(false);
-  const [isAgentInitializing, setIsAgentInitializing] = useState(false);
-  const [agentError, setAgentError] = useState<string | null>(null);
-
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [currentToolCalls, setCurrentToolCalls] = useState<ToolCallInfo[]>([]);
-
-  // Code References Panel state
-  const [codeReferences, setCodeReferences] = useState<CodeReference[]>([]);
-  const [isCodePanelOpen, setCodePanelOpen] = useState(false);
-  const [codeReferenceFocus, setCodeReferenceFocus] = useState<CodeReferenceFocus | null>(null);
 
     const normalizePath = useCallback((p: string) => {
     return p.replace(/\\/g, '/').replace(/^\.?\//, '');
@@ -1186,6 +1262,14 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
     clearAICodeReferences,
     clearCodeReferences,
     codeReferenceFocus,
+    // Task Board
+    tasks,
+    setTasks,
+    fetchTasks,
+    updateTaskStatus,
+    moveTask,
+    selectedTaskId,
+    setSelectedTaskId,
   };
 
   return (

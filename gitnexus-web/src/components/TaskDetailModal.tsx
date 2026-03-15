@@ -1,4 +1,7 @@
+import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, FileCode2, GitCommit, Zap, GitPullRequest, Play, Upload, Code2, Terminal, CheckCircle2, Sparkles } from 'lucide-react';
+import { useAppState } from '../hooks/useAppState';
+import { Task } from '../utils/taskUtil';
 
 interface TaskDetailModalProps {
   onClose?: () => void;
@@ -76,7 +79,10 @@ const ACTION_BTN = ({
 };
 
 export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => {
-  const [status, setStatus] = useState('In Review');
+  const { tasks, selectedTaskId, updateTaskStatus } = useAppState();
+  const task = tasks.find(t => t.id === selectedTaskId);
+
+  const [status, setStatus] = useState<Task['status']>(task?.status || 'To Do');
   const [checklist, setChecklist] = useState([
     { id: 1, text: 'Dark kanban board with 4 columns matching the design system', checked: true },
     { id: 2, text: 'Role badges rendered with appropriate accent colors', checked: true },
@@ -86,23 +92,35 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
     { id: 6, text: 'Performance optimization for SVG graph rendering', checked: false },
   ]);
 
+  useEffect(() => {
+    if (task) setStatus(task.status);
+  }, [task]);
+
   const toggleCheck = (id: number) => {
     setChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
   };
 
+  const handleStatusChange = (newStatus: string) => {
+    const s = newStatus as Task['status'];
+    setStatus(s);
+    if (task) {
+      updateTaskStatus(task.id, s);
+    }
+  };
+
   const checkedCount = checklist.filter(c => c.checked).length;
   const progressPercent = Math.round((checkedCount / checklist.length) * 100);
+
+  if (!task) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end"
       style={{ background: 'rgba(6,6,10,0.5)', backdropFilter: 'blur(12px)' }}
     >
-      {/* Background Blobs for Glass Feel */}
       <div className="absolute top-[20%] right-[30%] w-96 h-96 bg-accent/10 rounded-full blur-[120px] -z-10" />
       <div className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-node-file/10 rounded-full blur-[100px] -z-10" />
 
-      {/* Slide-in Panel */}
       <div
         className="w-full max-w-5xl h-full flex flex-col md:flex-row shadow-[0_0_80px_rgba(0,0,0,0.5)] border-l"
         style={{
@@ -110,18 +128,16 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
           backdropFilter: 'blur(24px) saturate(180%)',
           borderColor: 'rgba(255,255,255,0.08)',
           fontFamily: 'var(--font-sans)',
-          animation: 'slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* ── LEFT: Content ── */}
         <div className="flex-1 flex flex-col min-h-0 border-r border-white/5 bg-void/30">
           <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5">
             <div className="flex items-center gap-4">
               <span className="text-[10px] font-mono font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded bg-accent/20 text-accent border border-accent/30 shadow-[0_0_15px_rgba(124,58,237,0.2)]">
-                T-101
+                {task.id}
               </span>
               <h2 className="text-xl font-bold tracking-tight text-white drop-shadow-sm">
-                Design Task Board & AI Hub
+                {task.title}
               </h2>
             </div>
             <button
@@ -133,20 +149,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
           </header>
 
           <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-thin">
-            {/* Description */}
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-3 bg-accent rounded-full" />
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted">Description</h3>
               </div>
               <p className="text-[15px] leading-relaxed text-text-secondary font-medium">
-                Design the AI task collaboration hub for GitNexus Web. The UI must follow the existing dark design system
-                (Outfit + JetBrains Mono), use the established color tokens, and render the Kanban view, task detail
-                modal, and activity impact view.
+                This task focuses on {task.title}. It is assigned to {task.assignee} in the {task.role} role.
+                The current priority is set to {task.priority}.
               </p>
             </section>
 
-            {/* Checklist */}
             <section className="space-y-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -155,7 +168,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                 </div>
                 <div className="flex items-center gap-3">
                    <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-node-function transition-all duration-700" style={{ width: `${progressPercent}%` }} />
+                      <div className="h-full bg-node-function transition-all duration-700" style={{ width: \`\${progressPercent}%\` }} />
                    </div>
                    <span className="text-[11px] font-mono text-node-function font-bold">{progressPercent}%</span>
                 </div>
@@ -165,18 +178,17 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                   <div 
                     key={item.id} 
                     onClick={() => toggleCheck(item.id)}
-                    className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${item.checked ? 'bg-node-function/5 border-node-function/20' : 'bg-white/2 border-white/5 hover:bg-white/5'}`}
+                    className={\`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all \${item.checked ? 'bg-node-function/5 border-node-function/20' : 'bg-white/2 border-white/5 hover:bg-white/5'}\`}
                   >
-                    <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${item.checked ? 'bg-node-function border-node-function' : 'border-white/10'}`}>
+                    <div className={\`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all \${item.checked ? 'bg-node-function border-node-function' : 'border-white/10'}\`}>
                       {item.checked && <CheckCircle2 className="w-3.5 h-3.5 text-void font-bold" />}
                     </div>
-                    <span className={`text-sm ${item.checked ? 'text-text-primary line-through opacity-50' : 'text-text-secondary font-medium'}`}>{item.text}</span>
+                    <span className={\`text-sm \${item.checked ? 'text-text-primary line-through opacity-50' : 'text-text-secondary font-medium'}\`}>{item.text}</span>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* Code Context */}
             <section className="space-y-4">
                <div className="flex items-center gap-2">
                   <div className="w-1 h-3 bg-node-variable rounded-full" />
@@ -186,27 +198,21 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                   <div className="px-5 py-3.5 bg-white/5 border-b border-white/5 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <Code2 className="w-4 h-4 text-accent" />
-                        <span className="text-[12px] font-mono text-text-muted">src/hooks/useAppState.tsx</span>
+                        <span className="text-[12px] font-mono text-text-muted">src/components/TaskBoard.tsx</span>
                      </div>
                      <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded-full font-bold">TSX</span>
                   </div>
                   <pre className="p-6 text-sm text-node-function font-mono leading-relaxed bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.05),transparent)]">
-                     <code>{`export const useAppState = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('exploring');
-  const [hubTab, setHubTab] = useState<HubTab>('dashboard');
-
-  return { viewMode, setViewMode, hubTab, setHubTab };
-};`}</code>
+                     <code>{\`// Task data for \${task.id}
+const taskData = \${JSON.stringify(task, null, 2)};\`}</code>
                   </pre>
                </div>
             </section>
           </div>
         </div>
 
-        {/* ── RIGHT Side ── */}
         <div className="w-[340px] flex flex-col border-white/5">
           <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-void/20 scrollbar-thin">
-            {/* Status Section */}
             <div>
                <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3 flex items-center gap-2">
                   <Zap className="w-3 h-3" /> Status & Assignments
@@ -219,7 +225,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                     <label className="text-[11px] text-text-muted mb-1.5 block">Pipeline Status</label>
                     <select
                       value={status}
-                      onChange={(e) => setStatus(e.target.value)}
+                      onChange={(e) => handleStatusChange(e.target.value)}
                       className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-sm text-white appearance-none focus:border-accent outline-none"
                     >
                       <option>To Do</option>
@@ -229,18 +235,22 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                     </select>
                   </div>
                   <div className="flex items-center gap-3 pt-2">
-                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent to-pink-500 p-0.5 shadow-lg">
-                        <div className="w-full h-full rounded-[14px] bg-void flex items-center justify-center text-xs font-bold text-white">CW</div>
+                     <div 
+                        className="w-10 h-10 rounded-2xl p-0.5 shadow-lg"
+                        style={{ background: \`linear-gradient(135deg, \${task.roleColor}, #000)\` }}
+                     >
+                        <div className="w-full h-full rounded-[14px] bg-void flex items-center justify-center text-xs font-bold text-white">
+                          {task.assignee.slice(0, 2).toUpperCase()}
+                        </div>
                      </div>
                      <div>
-                        <p className="text-sm font-bold text-white">Christian Wu</p>
-                        <p className="text-[10px] text-text-muted">Lead UI/UX Architect</p>
+                        <p className="text-sm font-bold text-white">{task.assignee}</p>
+                        <p className="text-[10px] text-text-muted">{task.role}</p>
                      </div>
                   </div>
                </div>
             </div>
 
-            {/* Actions Grid */}
             <div className="space-y-3">
                <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3">Priority Actions</h4>
                <div className="grid grid-cols-1 gap-2.5">
@@ -251,17 +261,13 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
                </div>
             </div>
 
-            {/* Related Files (Flow A-02) */}
             <div className="space-y-3">
-               <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3">Context Assets (6)</h4>
+               <h4 className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-3">Context Assets</h4>
                <div className="space-y-1.5">
                   {[
                     { name: 'App.tsx', color: '#3b82f6', type: 'TSX' },
-                    { name: 'DashboardView.tsx', color: '#3b82f6', type: 'TSX' },
                     { name: 'TaskBoard.tsx', color: '#3b82f6', type: 'TSX' },
                     { name: 'useAppState.tsx', color: '#3b82f6', type: 'HOOK' },
-                    { name: 'index.css', color: '#ec4899', type: 'CSS' },
-                    { name: 'GLOBAL_THEME.md', color: '#6b7280', type: 'DOC' },
                   ].map(file => (
                     <div key={file.name} className="flex items-center justify-between p-2.5 rounded-xl bg-white/2 hover:bg-white/5 border border-white/5 transition-all group cursor-pointer">
                        <div className="flex items-center gap-3">
@@ -275,7 +281,6 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ onClose }) => 
             </div>
           </div>
 
-          {/* Terminal Console (Flow A-02) */}
           <div className="h-[240px] flex-shrink-0 flex flex-col border-t border-white/5 bg-[#05050a]">
             <div className="px-5 py-2.5 bg-white/2 border-b border-white/5 flex items-center justify-between">
                <div className="flex items-center gap-2">
