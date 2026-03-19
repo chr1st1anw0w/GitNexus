@@ -19,6 +19,7 @@ import { createASTCache } from './ast-cache.js';
 import { PipelineProgress, PipelineResult } from '../../types/pipeline.js';
 import { walkRepositoryPaths, readFileContents } from './filesystem-walker.js';
 import { getLanguageFromFilename } from './utils.js';
+import { processDocuments, isDocumentFile } from './document-processor.js';
 import { isLanguageAvailable } from '../tree-sitter/parser-loader.js';
 import { createWorkerPool, WorkerPool } from './workers/worker-pool.js';
 import fs from 'node:fs';
@@ -101,8 +102,44 @@ export const runPipelineFromRepo = async (
 
     onProgress({
       phase: 'structure',
-      percent: 20,
+      percent: 18,
       message: 'Project structure analyzed',
+      stats: { filesProcessed: totalFiles, totalFiles, nodesCreated: graph.nodeCount },
+    });
+
+    // ── Phase 2.5: Document cross-references (MD/JSON/YAML) ───────────
+    // Read document files and extract cross-references before code parsing.
+    // This is lightweight (regex-based) so we process all at once.
+    const docScanned = scannedFiles.filter(f => {
+      if (fileFilter && !fileFilter.has(f.path)) return false;
+      return isDocumentFile(f.path);
+    });
+
+    if (docScanned.length > 0) {
+      onProgress({
+        phase: 'structure',
+        percent: 18,
+        message: `Processing ${docScanned.length} document files...`,
+        stats: { filesProcessed: totalFiles, totalFiles, nodesCreated: graph.nodeCount },
+      });
+
+      const docContents = await readFileContents(repoPath, docScanned.map(f => f.path));
+      const docFiles = docScanned
+        .filter(f => docContents.has(f.path))
+        .map(f => ({ path: f.path, content: docContents.get(f.path)! }));
+
+      const allFilePathSet = new Set(allPaths);
+      const docResult = processDocuments(graph, docFiles, allFilePathSet);
+
+      if (isDev && docResult.referencesResolved > 0) {
+        console.log(`📄 Documents: ${docResult.filesProcessed} files, ${docResult.referencesFound} refs found, ${docResult.referencesResolved} resolved`);
+      }
+    }
+
+    onProgress({
+      phase: 'structure',
+      percent: 20,
+      message: 'Structure & documents analyzed',
       stats: { filesProcessed: totalFiles, totalFiles, nodesCreated: graph.nodeCount },
     });
 

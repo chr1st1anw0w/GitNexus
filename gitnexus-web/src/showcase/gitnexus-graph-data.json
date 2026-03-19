@@ -1,0 +1,47 @@
+{
+  "exportedAt": "2026-03-15T20:30:00Z",
+  "source": "GitNexus .gitnexus/kuzu database",
+  "stats": {
+    "nodeCount": 50,
+    "edgeCount": 120,
+    "communities": 8,
+    "processes": 5
+  },
+  "nodes": [
+    {
+      "id": "Function:gitnexus-web/src/App.tsx:App",
+      "name": "App",
+      "filePath": "gitnexus-web/src/App.tsx",
+      "label": "Function",
+      "startLine": 1,
+      "endLine": 150,
+      "isExported": true,
+      "description": "Main application component",
+      "communities": ["web-ui", "core-app"],
+      "risk": "LOW",
+      "confidence": 0.95
+    },
+    {
+      "id": "Function:gitnexus-web/src/hooks/useAppState.tsx:useAppState",
+      "name": "useAppState",
+      "filePath": "gitnexus-web/src/hooks/useAppState.tsx",
+      "label": "Function",
+      "startLine": 10,
+      "endLine": 80,
+      "isExported": true,
+      "description": "App state management hook",
+      "communities": ["state-management"],
+      "risk": "MEDIUM",
+      "confidence": 0.92
+    }
+  ],
+  "edges": [
+    {
+      "source": "Function:gitnexus-web/src/App.tsx:App",
+      "target": "Function:gitnexus-web/src/hooks/useAppState.tsx:useAppState",
+      "type": "CALLS",
+      "confidence": 0.95,
+      "reason": "App component uses useAppState hook"
+    }
+  ]
+}

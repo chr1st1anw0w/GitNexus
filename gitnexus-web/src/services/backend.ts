@@ -42,7 +42,7 @@ const fetchWithTimeout = async (
   url: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
-): Promise<Response> => {
+ ): Promise<Response> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -177,6 +177,23 @@ export const fetchFileContent = async (
 
   const body = (await response.json()) as { content: string };
   return body.content;
+};
+
+/**
+ * Write content to a file in a repository.
+ */
+export const writeFileContent = async (
+  repo: string,
+  filePath: string,
+  content: string,
+): Promise<{ success: boolean }> => {
+  const response = await fetchWithTimeout(`${backendUrl}/api/file`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repo, path: filePath, content }),
+  });
+  await assertOk(response);
+  return response.json();
 };
 
 /**

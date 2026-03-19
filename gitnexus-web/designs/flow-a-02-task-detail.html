@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitNexus AI Hub — Task Detail</title>
+<style>
+  /* ── CSS Variables ────────────────────────────────────────── */
+  :root {
+    --bg-base:        #0a0e1a;
+    --bg-panel:       #1a1f2e;
+    --bg-card:        #141928;
+    --bg-card-hover:  #1c2235;
+    --bg-sidebar:     #0d1220;
+    --bg-topbar:      #0f1422;
+    --bg-terminal:    #000000;
+
+    --accent-teal:    #00d4aa;
+    --accent-purple:  #7c3aed;
+    --accent-amber:   #f59e0b;
+    --accent-green:   #22c55e;
+    --accent-red:     #ef4444;
+    --accent-blue:    #3b82f6;
+
+    --text-primary:   #e2e8f0;
+    --text-secondary: #8892a4;
+    --text-muted:     #4a5568;
+    --text-inverse:   #0a0e1a;
+    --text-terminal:  #00ff88;
+    --text-terminal-dim: #00cc66;
+
+    --border-subtle:  #1e2740;
+    --border-active:  #2a3550;
+
+    --font-ui:    'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono:  'Fira Code', 'Cascadia Code', 'JetBrains Mono', 'Courier New', monospace;
+
+    --sidebar-w:  64px;
+    --topbar-h:   56px;
+    --terminal-h: 200px;
+    --right-w:    38%;
+    --radius-sm:  4px;
+    --radius-md:  8px;
+    --radius-lg:  12px;
+
+    --shadow-card:  0 2px 8px rgba(0,0,0,0.4);
+    --shadow-glow-amber: 0 0 12px rgba(245,158,11,0.35);
+    --shadow-glow-teal:  0 0 12px rgba(0,212,170,0.25);
+  }
+
+  /* ── Reset ────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── App Shell ────────────────────────────────────────────── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-rows: var(--topbar-h) 1fr;
+    height: 100vh;
+    width: 100%;
+    min-width: 1200px;
+  }
+
+  /* ── Sidebar ──────────────────────────────────────────────── */
+  .sidebar {
+    grid-row: 1 / 3;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0;
+    gap: 4px;
+    z-index: 10;
+  }
+
+  .sidebar-logo {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-divider {
+    width: 32px;
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 8px 0;
+  }
+
+  .nav-item {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    color: var(--text-muted);
+  }
+  .nav-item:hover { background: var(--border-subtle); color: var(--text-secondary); }
+  .nav-item.active {
+    background: rgba(0,212,170,0.12);
+    color: var(--accent-teal);
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 24px;
+    background: var(--accent-teal);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-active);
+    color: var(--text-primary);
+    font-size: 12px;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+  }
+  .nav-item:hover .nav-tooltip { opacity: 1; }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Top Bar ──────────────────────────────────────────────── */
+  .topbar {
+    grid-column: 2 / 3;
+    background: var(--bg-topbar);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    z-index: 9;
+  }
+
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    flex-shrink: 0;
+  }
+
+  .brand-hex { width: 28px; height: 28px; flex-shrink: 0; }
+
+  .topbar-sep {
+    width: 1px;
+    height: 20px;
+    background: var(--border-active);
+    flex-shrink: 0;
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .breadcrumb a { color: var(--text-secondary); text-decoration: none; cursor: pointer; }
+  .breadcrumb a:hover { color: var(--accent-teal); }
+  .breadcrumb-sep { color: var(--text-muted); }
+  .breadcrumb-current { color: var(--text-primary); font-weight: 500; }
+
+  .branch-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius-md);
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    transition: border-color 0.15s;
+  }
+  .branch-selector:hover { border-color: var(--accent-teal); color: var(--text-primary); }
+  .branch-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-teal); flex-shrink: 0; }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s, color 0.15s;
+  }
+  .icon-btn:hover { background: var(--bg-panel); color: var(--text-secondary); }
+
+  .notif-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+    border: 2px solid var(--bg-topbar);
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-purple), #5b21b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    border: 2px solid var(--border-active);
+    flex-shrink: 0;
+  }
+
+  /* ── Main Content ─────────────────────────────────────────── */
+  .main-content {
+    grid-column: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Split Panel Wrapper ──────────────────────────────────── */
+  .split-wrapper {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Left Panel ───────────────────────────────────────────── */
+  .left-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px 24px 28px;
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .left-panel::-webkit-scrollbar { width: 4px; }
+  .left-panel::-webkit-scrollbar-track { background: transparent; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
+
+  /* ── Task Header ──────────────────────────────────────────── */
+  .task-header { display: flex; flex-direction: column; gap: 12px; }
+
+  .task-id-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .task-id-pill {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .status-inprogress {
+    background: rgba(245,158,11,0.12);
+    color: var(--accent-amber);
+    border: 1px solid rgba(245,158,11,0.3);
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .task-h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  /* ── Markdown Body ────────────────────────────────────────── */
+  .md-body { display: flex; flex-direction: column; gap: 16px; }
+
+  .md-body p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .md-body h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .md-body h2 .h2-icon { color: var(--accent-teal); }
+
+  .md-body ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 0;
+    list-style: none;
+  }
+  .md-body ul li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+  .li-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1.5px solid var(--border-active);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .li-check.done {
+    background: rgba(34,197,94,0.15);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+  }
+  .li-check.pending {
+    background: transparent;
+    border-color: var(--border-active);
+  }
+
+  /* ── Related Files ────────────────────────────────────────── */
+  .file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .file-item:hover {
+    border-color: var(--border-active);
+    background: var(--bg-card-hover);
+  }
+
+  .file-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .file-ts  { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+  .file-tsx { background: rgba(0,212,170,0.12); color: var(--accent-teal); border: 1px solid rgba(0,212,170,0.2); }
+  .file-css { background: rgba(124,58,237,0.12); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); }
+  .file-json{ background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.2); }
+  .file-md  { background: rgba(34,197,94,0.12); color: var(--accent-green); border: 1px solid rgba(34,197,94,0.2); }
+
+  .file-path {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+  .file-path .file-dir { color: var(--text-muted); }
+
+  .file-change {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    display: flex;
+    gap: 6px;
+  }
+  .change-add { color: var(--accent-green); }
+  .change-del { color: var(--accent-red); }
+
+  /* ── Commit History ───────────────────────────────────────── */
+  .commit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .commit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .commit-item:last-child { border-bottom: none; }
+  .commit-item:hover { background: var(--bg-card-hover); }
+
+  .commit-hash {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-teal);
+    background: rgba(0,212,170,0.08);
+    border: 1px solid rgba(0,212,170,0.15);
+    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .commit-msg {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .commit-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .commit-author { font-size: 11px; color: var(--text-muted); }
+  .commit-time { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  /* ── Right Sidebar ────────────────────────────────────────── */
+  .right-sidebar {
+    width: var(--right-w);
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-subtle);
+    overflow-y: auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .right-sidebar::-webkit-scrollbar { width: 4px; }
+  .right-sidebar::-webkit-scrollbar-track { background: transparent; }
+  .right-sidebar::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
+
+  .sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+  .sidebar-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* ── Status Dropdown ──────────────────────────────────────── */
+  .status-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius-md);
+    padding: 9px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .status-select:hover { border-color: var(--accent-amber); }
+  .status-select-left { display: flex; align-items: center; gap: 8px; }
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-amber);
+    flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(245,158,11,0.6);
+  }
+  .status-label { font-size: 13px; font-weight: 500; color: var(--accent-amber); }
+
+  /* ── Assignee ─────────────────────────────────────────────── */
+  .assignee-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+  .avatar-md {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .av-purple { background: linear-gradient(135deg, var(--accent-purple), #5b21b6); }
+  .assignee-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+  .assignee-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+  .badge-purple { background: rgba(124,58,237,0.15); color: #a78bfa; border: 1px solid rgba(124,58,237,0.3); }
+  .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* ── Due Date ─────────────────────────────────────────────── */
+  .due-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+  .due-icon { color: var(--text-muted); display: flex; align-items: center; }
+  .due-text { font-size: 13px; color: var(--text-secondary); }
+  .due-soon { color: var(--accent-amber) !important; }
+
+  /* ── Priority ─────────────────────────────────────────────── */
+  .priority-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+  .priority-dots { display: flex; gap: 3px; }
+  .priority-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .priority-label { font-size: 13px; color: var(--text-secondary); }
+
+  /* ── Sidebar Divider ──────────────────────────────────────── */
+  .sidebar-hr {
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  /* ── Action Buttons ───────────────────────────────────────── */
+  .action-buttons { display: flex; flex-direction: column; gap: 8px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    outline: none;
+    width: 100%;
+    font-family: var(--font-ui);
+    letter-spacing: 0.01em;
+  }
+  .btn-primary {
+    background: var(--accent-teal);
+    color: #000;
+  }
+  .btn-primary:hover {
+    background: #00bfa0;
+    box-shadow: var(--shadow-glow-teal);
+  }
+  .btn-outline-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-active);
+  }
+  .btn-outline-secondary:hover { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-active); }
+  .btn-outline-amber {
+    background: transparent;
+    color: var(--accent-amber);
+    border: 1px solid rgba(245,158,11,0.35);
+  }
+  .btn-outline-amber:hover {
+    background: rgba(245,158,11,0.08);
+    border-color: var(--accent-amber);
+    box-shadow: var(--shadow-glow-amber);
+  }
+  .btn-outline-green {
+    background: transparent;
+    color: var(--accent-green);
+    border: 1px solid rgba(34,197,94,0.35);
+  }
+  .btn-outline-green:hover {
+    background: rgba(34,197,94,0.08);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 10px rgba(34,197,94,0.25);
+  }
+
+  /* ── Activity Tags ────────────────────────────────────────── */
+  .activity-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .activity-tag {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  /* ── Terminal Panel ───────────────────────────────────────── */
+  .terminal-panel {
+    height: var(--terminal-h);
+    flex-shrink: 0;
+    background: var(--bg-terminal);
+    border-top: 1px solid #1a2a1a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .terminal-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #1a2a1a;
+    flex-shrink: 0;
+  }
+
+  .terminal-dots { display: flex; gap: 6px; }
+  .t-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .t-dot-red    { background: #ff5f57; }
+  .t-dot-amber  { background: #febc2e; }
+  .t-dot-green  { background: #28c840; }
+
+  .terminal-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #4a6a4a;
+    letter-spacing: 0.04em;
+  }
+  .terminal-badge {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #00cc66;
+    background: rgba(0,204,102,0.08);
+    border: 1px solid rgba(0,204,102,0.2);
+    border-radius: 3px;
+    padding: 2px 7px;
+  }
+
+  .terminal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .terminal-body::-webkit-scrollbar { width: 3px; }
+  .terminal-body::-webkit-scrollbar-track { background: transparent; }
+  .terminal-body::-webkit-scrollbar-thumb { background: #1a3a1a; border-radius: 2px; }
+
+  .t-line {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    white-space: pre;
+  }
+  .t-time { color: #3a6a3a; flex-shrink: 0; }
+  .t-tool { color: #00cc66; }
+  .t-arg  { color: #80d4a0; }
+  .t-sep  { color: #2a5a2a; }
+  .t-result { color: #60aa80; }
+  .t-result-count { color: var(--accent-teal); font-weight: 600; }
+  .t-warn { color: var(--accent-amber); }
+  .t-info { color: #4a8a6a; }
+  .t-error { color: #cc4444; }
+  .t-success { color: var(--accent-green); }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 7px;
+    height: 13px;
+    background: var(--text-terminal);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  /* ── Global scrollbar ─────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <svg class="sidebar-logo" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,2 33,10 33,26 18,34 3,26 3,10" fill="#0d1a2e" stroke="#00d4aa" stroke-width="1.5"/>
+      <polygon points="18,8 28,13.5 28,24.5 18,30 8,24.5 8,13.5" fill="none" stroke="#7c3aed" stroke-width="1" opacity="0.6"/>
+      <circle cx="18" cy="14" r="2.5" fill="#00d4aa"/>
+      <line x1="18" y1="16.5" x2="12" y2="22" stroke="#00d4aa" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="18" y1="16.5" x2="24" y2="22" stroke="#7c3aed" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="12" cy="22" r="2" fill="#7c3aed"/>
+      <circle cx="24" cy="22" r="2" fill="#7c3aed"/>
+    </svg>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      <span class="nav-tooltip">Dashboard</span>
+    </div>
+
+    <div class="nav-item active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/>
+      </svg>
+      <span class="nav-tooltip">Task Board</span>
+    </div>
+
+    <div class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-tooltip">Activity</span>
+    </div>
+
+    <div class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="19" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/>
+        <line x1="5" y1="17" x2="12" y2="7"/><line x1="12" y1="7" x2="19" y2="10"/>
+        <line x1="19" y1="14" x2="5" y2="17"/>
+      </svg>
+      <span class="nav-tooltip">Impact Graph</span>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span class="nav-tooltip">Settings</span>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="avatar">CW</div>
+    </div>
+  </aside>
+
+  <!-- ── Top Bar ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg class="brand-hex" viewBox="0 0 28 28" fill="none">
+        <polygon points="14,2 25,8 25,20 14,26 3,20 3,8" fill="#0d1a2e" stroke="#00d4aa" stroke-width="1.2"/>
+        <circle cx="14" cy="11" r="2" fill="#00d4aa"/>
+        <line x1="14" y1="13" x2="10" y2="18" stroke="#00d4aa" stroke-width="1" stroke-linecap="round"/>
+        <line x1="14" y1="13" x2="18" y2="18" stroke="#7c3aed" stroke-width="1" stroke-linecap="round"/>
+        <circle cx="10" cy="18" r="1.5" fill="#7c3aed"/>
+        <circle cx="18" cy="18" r="1.5" fill="#7c3aed"/>
+      </svg>
+      GitNexus AI Hub
+    </div>
+
+    <div class="topbar-sep"></div>
+
+    <nav class="breadcrumb">
+      <a>Task Board</a>
+      <span class="breadcrumb-sep">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </span>
+      <span class="breadcrumb-current">TASK-007</span>
+    </nav>
+
+    <div class="topbar-sep"></div>
+
+    <div class="branch-selector">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+        <path d="M18 9a9 9 0 0 1-9 9"/>
+      </svg>
+      <span class="branch-dot"></span>
+      feature/ui-taskboard
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-badge"></span>
+      </div>
+      <div class="icon-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="avatar">CW</div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ── -->
+  <main class="main-content">
+
+    <!-- Split + Terminal stacked -->
+    <div class="split-wrapper">
+
+      <!-- ── Left Panel ── -->
+      <div class="left-panel">
+
+        <!-- Task Header -->
+        <div class="task-header">
+          <div class="task-id-row">
+            <span class="task-id-pill">TASK-007</span>
+            <span class="status-badge status-inprogress">
+              <span class="status-dot"></span>
+              In Progress
+            </span>
+          </div>
+          <h1 class="task-h1">Implement Impact Analysis Dashboard</h1>
+        </div>
+
+        <!-- Description -->
+        <div class="md-body">
+          <p>
+            Build a dedicated dashboard view within GitNexus AI Hub that visualizes the blast radius of any
+            symbol change — surfacing direct callers (<code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-card);padding:1px 5px;border-radius:3px;color:var(--accent-teal);">d=1</code>),
+            indirect dependents (<code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-card);padding:1px 5px;border-radius:3px;color:#60a5fa;">d=2</code>),
+            and transitive chains (<code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-card);padding:1px 5px;border-radius:3px;color:var(--text-secondary);">d=3</code>)
+            in an interactive graph. The panel must consume the <code style="font-family:var(--font-mono);font-size:12px;background:var(--bg-card);padding:1px 5px;border-radius:3px;color:var(--accent-teal);">gitnexus_impact</code> MCP tool response and
+            render risk levels with color-coded severity.
+          </p>
+
+          <h2>
+            <span class="h2-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </span>
+            Acceptance Criteria
+          </h2>
+          <ul>
+            <li>
+              <span class="li-check done">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Sidebar panel opens on clicking any symbol in the code explorer
+            </li>
+            <li>
+              <span class="li-check done">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Calls <code style="font-family:var(--font-mono);font-size:11px;background:var(--bg-base);padding:1px 4px;border-radius:3px;color:var(--accent-teal);">gitnexus_impact({target, direction: "upstream"})</code> and renders response
+            </li>
+            <li>
+              <span class="li-check pending"></span>
+              Color-coded risk rings: CRITICAL (red), HIGH (amber), MEDIUM (blue), LOW (muted)
+            </li>
+            <li>
+              <span class="li-check pending"></span>
+              Graph nodes are clickable — click expands that symbol's own impact tree
+            </li>
+            <li>
+              <span class="li-check pending"></span>
+              "Export Impact Report" button generates a Markdown summary
+            </li>
+            <li>
+              <span class="li-check pending"></span>
+              Loading skeleton shown while MCP call is in flight (&lt;300ms threshold)
+            </li>
+            <li>
+              <span class="li-check pending"></span>
+              Responsive down to 1280px viewport width without horizontal scroll
+            </li>
+          </ul>
+
+          <h2>
+            <span class="h2-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </span>
+            Related Files
+          </h2>
+
+          <div class="file-list">
+            <div class="file-item">
+              <div class="file-icon file-tsx">TSX</div>
+              <span class="file-path">
+                <span class="file-dir">src/components/</span>ImpactAnalysisView.tsx
+              </span>
+              <span class="file-change"><span class="change-add">+247</span><span class="change-del">−18</span></span>
+            </div>
+            <div class="file-item">
+              <div class="file-icon file-ts">TS</div>
+              <span class="file-path">
+                <span class="file-dir">src/hooks/</span>useImpactAnalysis.ts
+              </span>
+              <span class="file-change"><span class="change-add">+89</span><span class="change-del">−0</span></span>
+            </div>
+            <div class="file-item">
+              <div class="file-icon file-ts">TS</div>
+              <span class="file-path">
+                <span class="file-dir">src/services/</span>gitnexus-mcp.ts
+              </span>
+              <span class="file-change"><span class="change-add">+34</span><span class="change-del">−6</span></span>
+            </div>
+            <div class="file-item">
+              <div class="file-icon file-css">CSS</div>
+              <span class="file-path">
+                <span class="file-dir">src/styles/</span>impact-graph.module.css
+              </span>
+              <span class="file-change"><span class="change-add">+112</span><span class="change-del">−0</span></span>
+            </div>
+            <div class="file-item">
+              <div class="file-icon file-json">JSON</div>
+              <span class="file-path">
+                <span class="file-dir">src/types/</span>impact-analysis.schema.json
+              </span>
+              <span class="file-change"><span class="change-add">+55</span><span class="change-del">−0</span></span>
+            </div>
+          </div>
+
+          <h2>
+            <span class="h2-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+            Commit History
+          </h2>
+
+          <div class="commit-list">
+            <div class="commit-item">
+              <span class="commit-hash">a3f7d2c</span>
+              <span class="commit-msg">feat(impact): add depth-level color ring renderer component</span>
+              <div class="commit-meta">
+                <span class="commit-author">Jules</span>
+                <span class="commit-time">2h ago</span>
+              </div>
+            </div>
+            <div class="commit-item">
+              <span class="commit-hash">9e1bc04</span>
+              <span class="commit-msg">feat(hooks): implement useImpactAnalysis with MCP call + cache</span>
+              <div class="commit-meta">
+                <span class="commit-author">Jules</span>
+                <span class="commit-time">5h ago</span>
+              </div>
+            </div>
+            <div class="commit-item">
+              <span class="commit-hash">51d8a9f</span>
+              <span class="commit-msg">chore: scaffold ImpactAnalysisView.tsx with placeholder layout</span>
+              <div class="commit-meta">
+                <span class="commit-author">Jules</span>
+                <span class="commit-time">1d ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /left-panel -->
+
+      <!-- ── Right Sidebar ── -->
+      <div class="right-sidebar">
+
+        <!-- Status -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Status</span>
+          <div class="status-select">
+            <div class="status-select-left">
+              <span class="status-indicator"></span>
+              <span class="status-label">In Progress</span>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--text-muted)"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- Assignee -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Assigned To</span>
+          <div class="assignee-row">
+            <div class="avatar-md av-purple">JL</div>
+            <div class="assignee-info">
+              <span class="assignee-name">Jules</span>
+              <span class="badge badge-purple"><span class="badge-dot"></span>Code:Jules</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Due Date -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Due Date</span>
+          <div class="due-row">
+            <span class="due-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span class="due-text due-soon">March 17, 2026 · 2 days left</span>
+          </div>
+        </div>
+
+        <!-- Priority -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Priority</span>
+          <div class="priority-row">
+            <div class="priority-dots">
+              <div class="priority-dot" style="background:var(--accent-red)"></div>
+              <div class="priority-dot" style="background:var(--accent-red)"></div>
+              <div class="priority-dot" style="background:var(--accent-red)"></div>
+              <div class="priority-dot" style="background:var(--border-active)"></div>
+              <div class="priority-dot" style="background:var(--border-active)"></div>
+            </div>
+            <span class="priority-label">High</span>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Labels</span>
+          <div class="activity-tags">
+            <span class="activity-tag">impact-analysis</span>
+            <span class="activity-tag">frontend</span>
+            <span class="activity-tag">MCP</span>
+            <span class="activity-tag">graph-viz</span>
+          </div>
+        </div>
+
+        <div class="sidebar-hr"></div>
+
+        <!-- Action Buttons -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Actions</span>
+          <div class="action-buttons">
+            <button class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Start Task
+            </button>
+            <button class="btn btn-outline-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Commit Progress...
+            </button>
+            <button class="btn btn-outline-amber">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><polyline points="12 16 12 16"/></svg>
+              Run Impact Analysis
+            </button>
+            <button class="btn btn-outline-green">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Submit PR
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-hr"></div>
+
+        <!-- Metadata -->
+        <div class="sidebar-section">
+          <span class="sidebar-label">Details</span>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text-muted);">Created</span>
+              <span style="color:var(--text-secondary);font-family:var(--font-mono);">Mar 10, 2026</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text-muted);">Sprint</span>
+              <span style="color:var(--text-secondary);">Sprint 3 — v1.2</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text-muted);">Story Points</span>
+              <span style="color:var(--text-secondary);font-family:var(--font-mono);">8 pts</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--text-muted);">Branch</span>
+              <span style="color:var(--accent-teal);font-family:var(--font-mono);font-size:11px;">feat/impact-dash</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /right-sidebar -->
+
+    </div><!-- /split-wrapper -->
+
+    <!-- ── Terminal Panel ── -->
+    <div class="terminal-panel">
+      <div class="terminal-topbar">
+        <div class="terminal-dots">
+          <div class="t-dot t-dot-red"></div>
+          <div class="t-dot t-dot-amber"></div>
+          <div class="t-dot t-dot-green"></div>
+        </div>
+        <span class="terminal-title">MCP Activity Log — gitnexus · TASK-007</span>
+        <span class="terminal-badge">LIVE</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-line">
+          <span class="t-time">[14:28:44]</span>
+          <span class="t-info">Session attached to task TASK-007 · branch feat/impact-dash</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:29:01]</span>
+          <span class="t-tool">gitnexus_query</span><span class="t-sep">(</span><span class="t-arg">{query: "impact analysis dashboard"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result-count">5 results</span>
+          <span class="t-result"> · 3 execution flows matched</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:29:14]</span>
+          <span class="t-tool">gitnexus_context</span><span class="t-sep">(</span><span class="t-arg">{name: "ImpactAnalysisView"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result">callers: 2, callees: 7, flows: 2</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:29:31]</span>
+          <span class="t-tool">gitnexus_impact</span><span class="t-sep">(</span><span class="t-arg">{target: "useImpactAnalysis", direction: "upstream"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-warn">risk: HIGH</span><span class="t-result"> · d=1: 4 callers · d=2: 11 indirect</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:29:31]</span>
+          <span class="t-warn">  ⚠ WARNING: HIGH risk — 4 direct callers will be affected. Confirm before proceeding.</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:30:02]</span>
+          <span class="t-info">User acknowledged HIGH risk. Continuing with edit...</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:30:19]</span>
+          <span class="t-tool">gitnexus_detect_changes</span><span class="t-sep">(</span><span class="t-arg">{scope: "staged"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result">3 files modified · 2 symbols added · 1 renamed</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:31:05]</span>
+          <span class="t-tool">gitnexus_query</span><span class="t-sep">(</span><span class="t-arg">{query: "blast radius color ring CRITICAL HIGH"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result-count">2 results</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:31:22]</span>
+          <span class="t-tool">gitnexus_context</span><span class="t-sep">(</span><span class="t-arg">{name: "renderBlastRadiusRing"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result">callers: 1, callees: 3, new symbol</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:32:01]</span>
+          <span class="t-tool">gitnexus_query</span><span class="t-sep">(</span><span class="t-arg">{query: "impact analysis MCP response schema"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result-count">3 results</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:32:14]</span>
+          <span class="t-success">  ✓ Schema validation passed · impact-analysis.schema.json conforms to MCP v1.4 spec</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:32:44]</span>
+          <span class="t-tool">gitnexus_impact</span><span class="t-sep">(</span><span class="t-arg">{target: "ImpactAnalysisView", direction: "upstream"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result">risk: LOW · d=1: 1 caller · d=2: 3 indirect</span>
+        </div>
+        <div class="t-line">
+          <span class="t-time">[14:33:00]</span>
+          <span class="t-tool">gitnexus_detect_changes</span><span class="t-sep">(</span><span class="t-arg">{scope: "all"}</span><span class="t-sep">)</span>
+          <span class="t-sep"> → </span>
+          <span class="t-result">5 files changed · matches expected scope · safe to commit</span>
+          <span class="cursor-blink"></span>
+        </div>
+      </div>
+    </div><!-- /terminal-panel -->
+
+  </main>
+
+</div>
+</body>
+</html>

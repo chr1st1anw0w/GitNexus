@@ -278,6 +278,35 @@ export const createServer = async (port: number, host: string = '127.0.0.1') => 
     }
   });
 
+  // Write file — with path traversal guard
+  app.post('/api/file', async (req, res) => {
+    try {
+      const entry = await resolveRepo(requestedRepo(req));
+      if (!entry) {
+        res.status(404).json({ error: 'Repository not found' });
+        return;
+      }
+      const filePath = req.body.path as string;
+      const content = req.body.content as string;
+      if (!filePath || content === undefined) {
+        res.status(400).json({ error: 'Missing path or content' });
+        return;
+      }
+
+      const repoRoot = path.resolve(entry.path);
+      const fullPath = path.resolve(repoRoot, filePath);
+      if (!fullPath.startsWith(repoRoot + path.sep) && fullPath !== repoRoot) {
+        res.status(403).json({ error: 'Path traversal denied' });
+        return;
+      }
+
+      await fs.writeFile(fullPath, content, 'utf-8');
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Failed to write file' });
+    }
+  });
+
   // List all processes
   app.get('/api/processes', async (req, res) => {
     try {

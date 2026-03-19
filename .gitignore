@@ -63,3 +63,22 @@ docs/plans/
 gitnexus/test/fixtures/mini-repo/*.md
 gitnexus/test/fixtures/mini-repo/.claude
 gitnexus/test/fixtures/mini-repo/.gitignore
+
+# IDE tool configs (local only)
+.augment/
+.cline/
+
+# Vite temp files
+vite.config.ts.timestamp-*
+
+# Build artifacts & archives
+*.zip
+
+# Personal chat logs
+grok-chat-1.md
+
+# Home directory symlink (should never be tracked)
+~/
+
+# package-lock (use pnpm-lock instead)
+package-lock.json

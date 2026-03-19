@@ -90,8 +90,22 @@ export const FILTERABLE_LABELS: NodeLabel[] = [
   'Import',
 ];
 
-// Edge/Relation types
-export type EdgeType = 'CONTAINS' | 'DEFINES' | 'IMPORTS' | 'CALLS' | 'EXTENDS' | 'IMPLEMENTS';
+// Edge/Relation types — covers all RelationshipType from core/graph/types
+export type EdgeType =
+  | 'CONTAINS'
+  | 'DEFINES'
+  | 'IMPORTS'
+  | 'CALLS'
+  | 'EXTENDS'
+  | 'IMPLEMENTS'
+  | 'INHERITS'
+  | 'OVERRIDES'
+  | 'USES'
+  | 'HAS_METHOD'
+  | 'DECORATES'
+  | 'REFERENCES'
+  | 'MEMBER_OF'
+  | 'STEP_IN_PROCESS';
 
 export const ALL_EDGE_TYPES: EdgeType[] = [
   'CONTAINS',
@@ -100,24 +114,53 @@ export const ALL_EDGE_TYPES: EdgeType[] = [
   'CALLS',
   'EXTENDS',
   'IMPLEMENTS',
+  'INHERITS',
+  'OVERRIDES',
+  'USES',
+  'HAS_METHOD',
+  'DECORATES',
+  'REFERENCES',
+  'MEMBER_OF',
+  'STEP_IN_PROCESS',
 ];
 
-// Default visible edges (CALLS hidden by default to reduce clutter)
+// Default visible edges — hide structural noise (MEMBER_OF, STEP_IN_PROCESS)
 export const DEFAULT_VISIBLE_EDGES: EdgeType[] = [
   'CONTAINS',
   'DEFINES',
   'IMPORTS',
+  'CALLS',
   'EXTENDS',
   'IMPLEMENTS',
-  'CALLS',
+  'INHERITS',
+  'OVERRIDES',
+  'USES',
+  'HAS_METHOD',
+  'DECORATES',
+  'REFERENCES',
 ];
 
-// Edge display info for UI
+// Edge display info for UI — each type has a distinct color
 export const EDGE_INFO: Record<EdgeType, { color: string; label: string }> = {
-  CONTAINS: { color: '#2d5a3d', label: 'Contains' },
-  DEFINES: { color: '#0e7490', label: 'Defines' },
-  IMPORTS: { color: '#1d4ed8', label: 'Imports' },
-  CALLS: { color: '#7c3aed', label: 'Calls' },
-  EXTENDS: { color: '#c2410c', label: 'Extends' },
-  IMPLEMENTS: { color: '#be185d', label: 'Implements' },
+  // Structural
+  CONTAINS:         { color: '#2d5a3d', label: 'Contains' },
+  DEFINES:          { color: '#0e7490', label: 'Defines' },
+  // Dependencies
+  IMPORTS:          { color: '#22c55e', label: 'Imports' },
+  // Call graph
+  CALLS:            { color: '#6366f1', label: 'Calls' },
+  // OOP / Type relationships
+  EXTENDS:          { color: '#f59e0b', label: 'Extends' },
+  IMPLEMENTS:       { color: '#06b6d4', label: 'Implements' },
+  INHERITS:         { color: '#f59e0b', label: 'Inherits' },
+  OVERRIDES:        { color: '#fb923c', label: 'Overrides' },
+  // Usage
+  USES:             { color: '#8b5cf6', label: 'Uses' },
+  HAS_METHOD:       { color: '#0ea5e9', label: 'Has Method' },
+  DECORATES:        { color: '#eab308', label: 'Decorates' },
+  // Document cross-references
+  REFERENCES:       { color: '#14b8a6', label: 'References' },
+  // Graph structure
+  MEMBER_OF:        { color: '#64748b', label: 'Member Of' },
+  STEP_IN_PROCESS:  { color: '#ec4899', label: 'Step In Process' },
 };

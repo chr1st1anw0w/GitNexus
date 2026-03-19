@@ -1,9 +1,11 @@
 import { useEffect, useCallback, useMemo, useState, forwardRef, useImperativeHandle } from 'react';
-import { ZoomIn, ZoomOut, Maximize2, Focus, RotateCcw, Play, Pause, Lightbulb, LightbulbOff } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Focus, RotateCcw, Play, Pause, Lightbulb, LightbulbOff, ChevronDown, ChevronUp, Sparkles, ShieldAlert, GitBranch, Search } from 'lucide-react';
 import { useSigma } from '../hooks/useSigma';
 import { useAppState } from '../hooks/useAppState';
 import { knowledgeGraphToGraphology, filterGraphByDepth, SigmaNodeAttributes, SigmaEdgeAttributes } from '../lib/graph-adapter';
 import { QueryFAB } from './QueryFAB';
+import { NODE_COLORS } from '../lib/constants';
+import type { NodeLabel } from '../core/graph/types';
 import Graph from 'graphology';
 
 export interface GraphCanvasHandle {
@@ -27,8 +29,35 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
     isAIHighlightsEnabled,
     toggleAIHighlights,
     animatedNodes,
+    sendChatMessage,
+    openChatPanel,
   } = useAppState();
   const [hoveredNodeName, setHoveredNodeName] = useState<string | null>(null);
+  const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    nodeId: string;
+    nodeName: string;
+    nodeLabel: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Compute node type counts for legend
+  const nodeTypeCounts = useMemo(() => {
+    if (!graph) return [];
+    const counts: Record<string, number> = {};
+    for (const node of graph.nodes) {
+      if (node.label === 'Community' || node.label === 'Process') continue;
+      counts[node.label] = (counts[node.label] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, count]) => ({
+        label: label as NodeLabel,
+        count,
+        color: NODE_COLORS[label as NodeLabel] || '#6b7280',
+      }));
+  }, [graph]);
 
   const effectiveHighlightedNodeIds = useMemo(() => {
     if (!isAIHighlightsEnabled) return highlightedNodeIds;
@@ -73,7 +102,22 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
 
   const handleStageClick = useCallback(() => {
     setSelectedNode(null);
+    setContextMenu(null);
   }, [setSelectedNode]);
+
+  const handleNodeRightClick = useCallback((nodeId: string, x: number, y: number) => {
+    if (!graph) return;
+    const node = graph.nodes.find(n => n.id === nodeId);
+    if (node) {
+      setContextMenu({
+        nodeId,
+        nodeName: node.properties.name,
+        nodeLabel: node.label,
+        x,
+        y,
+      });
+    }
+  }, [graph]);
 
   const {
     containerRef,
@@ -91,6 +135,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
   } = useSigma({
     onNodeClick: handleNodeClick,
     onNodeHover: handleNodeHover,
+    onNodeRightClick: handleNodeRightClick,
     onStageClick: handleStageClick,
     highlightedNodeIds: effectiveHighlightedNodeIds,
     blastRadiusNodeIds: effectiveBlastRadiusNodeIds,
@@ -321,6 +366,105 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((_, ref) => {
           {isAIHighlightsEnabled ? <Lightbulb className="w-4 h-4" /> : <LightbulbOff className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* Right-click Context Menu with AI Quick Actions */}
+      {contextMenu && (
+        <div
+          className="fixed z-[60] w-64 rounded-2xl border border-border-subtle bg-deep/95 p-2 shadow-2xl shadow-black/50 backdrop-blur-md animate-fade-in"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-text-muted font-medium">
+            {contextMenu.nodeName} <span className="text-text-muted/60">({contextMenu.nodeLabel})</span>
+          </div>
+          <div className="h-px bg-border-subtle my-1" />
+          <button
+            onClick={() => {
+              setContextMenu(null);
+              openChatPanel();
+              sendChatMessage(`Explain what "${contextMenu.nodeName}" does and its role in the codebase.`);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface/60 hover:text-white"
+          >
+            <span>Explain this symbol</span>
+            <Sparkles className="h-4 w-4 text-accent" />
+          </button>
+          <button
+            onClick={() => {
+              setContextMenu(null);
+              openChatPanel();
+              sendChatMessage(`Run impact analysis on "${contextMenu.nodeName}". What would break if I change it?`);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface/60 hover:text-white"
+          >
+            <span>Impact analysis</span>
+            <ShieldAlert className="h-4 w-4 text-amber-400" />
+          </button>
+          <button
+            onClick={() => {
+              setContextMenu(null);
+              openChatPanel();
+              sendChatMessage(`Show all callers and callees of "${contextMenu.nodeName}". Trace the execution flow.`);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface/60 hover:text-white"
+          >
+            <span>Trace call graph</span>
+            <GitBranch className="h-4 w-4 text-emerald-400" />
+          </button>
+          <button
+            onClick={() => {
+              setContextMenu(null);
+              openChatPanel();
+              sendChatMessage(`Find all usages and references to "${contextMenu.nodeName}" across the codebase.`);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface/60 hover:text-white"
+          >
+            <span>Find references</span>
+            <Search className="h-4 w-4 text-cyan-400" />
+          </button>
+          <div className="h-px bg-border-subtle my-1" />
+          <button
+            onClick={() => {
+              const node = graph?.nodes.find(n => n.id === contextMenu.nodeId);
+              if (node) {
+                setSelectedNode(node);
+                openCodePanel();
+              }
+              setContextMenu(null);
+            }}
+            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-secondary transition-colors hover:bg-surface/60 hover:text-white"
+          >
+            <span>View source</span>
+            <Focus className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Node Type Legend - Bottom Left */}
+      {graph && nodeTypeCounts.length > 0 && (
+        <div className="absolute bottom-4 left-4 z-10 w-48">
+          <button
+            onClick={() => setIsLegendOpen(!isLegendOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 bg-elevated/90 border border-border-subtle rounded-lg backdrop-blur-sm text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <span className="font-medium">Node Types ({nodeTypeCounts.length})</span>
+            {isLegendOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+          </button>
+          {isLegendOpen && (
+            <div className="mt-1 p-2 bg-elevated/95 border border-border-subtle rounded-lg backdrop-blur-sm max-h-64 overflow-y-auto space-y-0.5">
+              {nodeTypeCounts.map(({ label, count, color }) => (
+                <div key={label} className="flex items-center justify-between px-2 py-1 rounded hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-[11px] text-text-secondary">{label}</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-text-muted">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });

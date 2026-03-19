@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { AppStateProvider, useAppState } from './hooks/useAppState';
 import { DropZone } from './components/DropZone';
 import { LoadingOverlay } from './components/LoadingOverlay';
@@ -9,15 +10,24 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { StatusBar } from './components/StatusBar';
 import { FileTreePanel } from './components/FileTreePanel';
 import { CodeReferencesPanel } from './components/CodeReferencesPanel';
+import { FloatingChatBar } from './components/FloatingChatBar';
+import { LanguageThemeToggle } from './components/LanguageThemeToggle';
+import { CanvasDisplayConfig } from './components/CanvasDisplayConfig';
 import { FileEntry } from './services/zip';
 import { getActiveProviderConfig } from './core/llm/settings-service';
 import { createKnowledgeGraph } from './core/graph/graph';
+import { TaskBoard } from './components/TaskBoard';
+import { TaskDetailModal } from './components/TaskDetailModal';
+import { ActivityImpactView } from './components/ActivityImpactView';
+import { DashboardView } from './components/DashboardView';
 import { connectToServer, fetchRepos, normalizeServerUrl, type ConnectToServerResult } from './services/server-connection';
 
 const AppContent = () => {
   const {
     viewMode,
     setViewMode,
+    hubTab,
+    setHubTab,
     setGraph,
     setFileContents,
     setProgress,
@@ -40,9 +50,47 @@ const AppContent = () => {
     availableRepos,
     setAvailableRepos,
     switchRepo,
+    selectedTaskId,
+    setSelectedTaskId,
   } = useAppState();
 
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
+
+  // Check if in demo mode and auto-load demo data
+  useEffect(() => {
+    const isDemoMode = new URLSearchParams(window.location.search).get('demo') === 'true';
+    if (isDemoMode && viewMode === 'onboarding') {
+      // Auto-load demo graph data
+      const demoGraph = createKnowledgeGraph();
+      // Add some sample nodes for demo
+      demoGraph.addNode({
+        id: 'demo-node-1',
+        label: 'Function',
+        properties: { name: 'main', filePath: 'src/main.ts', description: 'Application entry point' },
+      });
+      demoGraph.addNode({
+        id: 'demo-node-2',
+        label: 'Function',
+        properties: { name: 'handleRequest', filePath: 'src/handlers.ts', description: 'Request handler' },
+      });
+      demoGraph.addRelationship({
+        id: 'demo-rel-1',
+        sourceId: 'demo-node-1',
+        targetId: 'demo-node-2',
+        type: 'CALLS',
+        confidence: 0.95,
+        reason: 'Direct function call',
+      });
+
+      setGraph(demoGraph);
+      setProjectName('Demo Project');
+      setFileContents(new Map([
+        ['src/main.ts', '// Demo file content'],
+        ['src/handlers.ts', '// Handler file content'],
+      ]));
+      setViewMode('exploring');
+    }
+  }, [viewMode, setViewMode, setGraph, setFileContents, setProjectName]);
 
   const handleFileSelect = useCallback(async (file: File) => {
     const projectName = file.name.replace('.zip', '');
@@ -232,6 +280,10 @@ const AppContent = () => {
     graphCanvasRef.current?.focusNode(nodeId);
   }, []);
 
+  const handleResetAnalysis = useCallback(() => {
+    setViewMode('onboarding');
+  }, [setViewMode]);
+
   // Handle settings saved - refresh and reinitialize agent
   // NOTE: Must be defined BEFORE any conditional returns (React hooks rule)
   const handleSettingsSaved = useCallback(() => {
@@ -266,10 +318,81 @@ const AppContent = () => {
     return <LoadingOverlay progress={progress} />;
   }
 
+  // Hub view
+  if (viewMode === 'hub') {
+    return (
+      <div className="flex flex-col h-screen bg-void overflow-hidden">
+        <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} onResetAnalysis={handleResetAnalysis} />
+        
+        {/* Hub Sub-navigation */}
+        <div className="flex items-center gap-8 px-8 border-b border-border-subtle bg-deep/50 backdrop-blur-md">
+          {[
+            { id: 'dashboard', label: 'Dashboard' },
+            { id: 'tasks', label: 'Task Board' },
+            { id: 'impact', label: 'Impact Graph' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setHubTab(tab.id as any)}
+              className={`py-4 text-sm font-medium transition-all relative ${
+                hubTab === tab.id ? 'text-white' : 'text-text-muted hover:text-text-secondary'
+              }`}
+            >
+              {tab.label}
+              {hubTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent shadow-glow transition-all" />
+              )}
+            </button>
+          ))}
+          <div className="flex-1" />
+          <button 
+            onClick={() => setViewMode('exploring')}
+            className="text-xs font-mono text-text-muted hover:text-accent flex items-center gap-2 transition-colors"
+          >
+            QUIT_HUB <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <main className="flex-1 overflow-hidden">
+          {hubTab === 'dashboard' && <DashboardView />}
+          {hubTab === 'tasks' && <TaskBoard />}
+          {hubTab === 'impact' && <ActivityImpactView />}
+        </main>
+
+        <StatusBar />
+        <SettingsPanel
+          isOpen={isSettingsPanelOpen}
+          onClose={() => setSettingsPanelOpen(false)}
+          onSettingsSaved={handleSettingsSaved}
+        />
+        
+        {/* Floating Controls */}
+        <FloatingChatBar />
+        <LanguageThemeToggle />
+        
+        {/* Global Task Detail Modal */}
+        {selectedTaskId && (
+          <TaskDetailModal onClose={() => setSelectedTaskId(null)} />
+        )}
+      </div>
+    );
+  }
+
   // Exploring view
   return (
     <div className="flex flex-col h-screen bg-void overflow-hidden">
-      <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} />
+      <Header onFocusNode={handleFocusNode} availableRepos={availableRepos} onSwitchRepo={switchRepo} onResetAnalysis={handleResetAnalysis} />
+      
+      {/* Quick link to Hub */}
+      <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10">
+        <button 
+          onClick={() => setViewMode('hub')}
+          className="px-4 py-1.5 rounded-full bg-surface/80 border border-border-subtle backdrop-blur-md text-[10px] uppercase tracking-widest font-bold text-text-muted hover:text-white hover:border-accent transition-all flex items-center gap-2"
+        >
+          <Sparkles className="w-3 h-3 text-accent" />
+          Enter AI Hub
+        </button>
+      </div>
 
       <main className="flex-1 flex min-h-0">
         {/* Left Panel - File Tree */}
@@ -300,6 +423,19 @@ const AppContent = () => {
         onSettingsSaved={handleSettingsSaved}
       />
 
+      {/* Floating Chat Bar (bottom-right) */}
+      <FloatingChatBar />
+
+      {/* Language & Theme Toggle (top-right) */}
+      <LanguageThemeToggle />
+
+      {/* Canvas Display Config (top-left) */}
+      <CanvasDisplayConfig />
+
+      {/* Global Task Detail Modal */}
+      {selectedTaskId && (
+        <TaskDetailModal onClose={() => setSelectedTaskId(null)} />
+      )}
     </div>
   );
 };
